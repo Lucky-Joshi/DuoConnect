@@ -1,0 +1,32 @@
+{
+  "name": "duoconnect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A real-time communication platform for two people — chat, presence, and WebRTC calls.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "preview": "npm run preview -w client",
+    "migrate": "npm run migrate -w server",
+    "test": "npm run test -w server && npm run test -w client",
+    "test:server": "npm run test -w server",
+    "test:client": "npm run test -w client",
+    "lint": "npm run lint -w client && npm run lint -w server",
+    "format": "prettier --write \"{client,server,scripts}/**/*.{js,jsx,mjs,css,json,md}\" \"docs/**/*.md\" \".github/**/*.{yml,yaml}\" \"*.{md,json,yml,yaml}\"",
+    "format:check": "prettier --check \"{client,server,scripts}/**/*.{js,jsx,mjs,css,json,md}\" \"docs/**/*.md\" \".github/**/*.{yml,yaml}\" \"*.{md,json,yml,yaml}\""
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2"
+  }
+}
