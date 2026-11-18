@@ -1,0 +1,426 @@
+/* Search ----------------------------------------------------------------- */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.searchBar:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-softer);
+}
+
+.searchIcon {
+  flex: none;
+  color: var(--text-faint);
+}
+
+.searchBar input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.searchBar input::placeholder {
+  color: var(--text-faint);
+}
+
+.searchHint {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.clearSearch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: var(--text-faint);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.clearSearch:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* Toolbar ---------------------------------------------------------------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.summary {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+/* Connections ------------------------------------------------------------ */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.personCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.personCard:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+  background: var(--glass-bg-strong);
+}
+
+.personHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.personIdentity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.personIdentity button {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.personIdentity button:hover {
+  color: var(--accent);
+}
+
+.personIdentity span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.personIdentity em {
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-style: normal;
+  color: var(--text-faint);
+}
+
+.bio {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: 37px;
+}
+
+.personFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.personActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Requests --------------------------------------------------------------- */
+.requestList,
+.blockedList,
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requestCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.outgoingCard {
+  opacity: 0.92;
+}
+
+.requestText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.requestText strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.requestHandle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.requestText blockquote {
+  margin: 6px 0 0;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.requestText p {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.requestText time {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.pendingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Search results --------------------------------------------------------- */
+.resultRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.resultRow:hover {
+  background: var(--surface-strong);
+  border-color: var(--border-strong);
+}
+
+.resultText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.resultText strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resultText span {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Blocked ---------------------------------------------------------------- */
+.blockedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Skeletons -------------------------------------------------------------- */
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.skeletonText {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+
+.skeletonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Confirm ---------------------------------------------------------------- */
+.confirmPerson {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+
+.confirmPerson > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.confirmPerson strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirmPerson span span {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* Responsive ------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchHint {
+    display: none;
+  }
+
+  .summary {
+    display: none;
+  }
+
+  .toolbar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .personFoot {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .resultRow {
+    flex-wrap: wrap;
+  }
+
+  .resultText {
+    flex-basis: calc(100% - 66px);
+  }
+
+  .resultRow .rowActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .requestCard {
+    flex-wrap: wrap;
+  }
+
+  .requestText {
+    flex-basis: calc(100% - 66px);
+  }
+
+  .requestCard .rowActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .blockedRow {
+    flex-wrap: wrap;
+  }
+}

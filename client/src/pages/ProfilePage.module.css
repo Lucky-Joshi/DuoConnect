@@ -1,0 +1,414 @@
+/* Hero ------------------------------------------------------------------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 26px;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, var(--accent-softer), transparent 54%), var(--glass-bg-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+.heroGlow {
+  position: absolute;
+  top: -180px;
+  right: -80px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-soft), transparent 66%);
+  pointer-events: none;
+}
+
+.heroTop {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  min-width: 0;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 6px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.nameRow h2 {
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.youPill,
+.friendPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.youPill {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.friendPill {
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.handle {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-faint);
+}
+
+.presence i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.presenceOnline {
+  color: var(--success, #34d399);
+}
+
+.presenceOnline i {
+  background: var(--success, #34d399);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success, #34d399) 20%, transparent);
+}
+
+.about {
+  margin-top: 12px;
+  max-width: 560px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.aboutMuted {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.heroActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.actionSpacer {
+  flex: 1;
+}
+
+.notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.notice svg {
+  flex: none;
+  color: var(--warning, #fbbf24);
+}
+
+.pendingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.metaRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 16px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.metaRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Context ---------------------------------------------------------------- */
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.contextCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.contextCard:hover {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  background: var(--glass-bg-strong);
+}
+
+.contextIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.contextText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.contextText strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contextText p {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Skeletons -------------------------------------------------------------- */
+.heroSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 26px;
+  border-radius: var(--radius-xl);
+}
+
+.skeletonBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.contextSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Modal contents --------------------------------------------------------- */
+.noteForm {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.notePerson,
+.confirmPerson {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+
+.notePerson > span:last-child,
+.confirmPerson > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.notePerson strong,
+.confirmPerson strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notePerson span span,
+.confirmPerson span span {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.noteLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.noteLabel span {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.noteInput {
+  width: 100%;
+  padding: 12px 13px;
+  resize: vertical;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.noteInput:focus {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-softer);
+}
+
+.noteInput::placeholder {
+  color: var(--text-faint);
+}
+
+.emptyActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Responsive ------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .contextGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .heroTop {
+    gap: 16px;
+  }
+
+  .heroTop > :first-child {
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 28px !important;
+  }
+
+  .heroActions {
+    gap: 6px;
+  }
+
+  .heroActions > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .actionSpacer {
+    display: none;
+  }
+
+  .heroSkeleton {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .skeletonBody {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .heroTop {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .metaRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .notice {
+    width: 100%;
+  }
+}
