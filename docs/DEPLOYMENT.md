@@ -29,7 +29,6 @@ JWT_ACCESS_SECRET=<32+ random bytes>
 COOKIE_SAME_SITE=lax                  # none for cross-site + HTTPS
 TRUST_PROXY=1
 UPLOAD_DIR=uploads
-ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:turn.example.com:3478","username":"...","credential":"..."}]
 ```
 
 Do not run multiple API replicas against one PGlite directory. Use Postgres for any horizontally scaled deployment.
@@ -59,6 +58,8 @@ Client:
 VITE_API_URL=https://api.example.com npm run build
 ```
 
+Both `VITE_API_URL` and `VITE_ICE_SERVERS` are baked into the bundle at build time. Set them in the hosting platform's build environment; editing a local `.env` does not affect deployed builds.
+
 Deploy `client/dist` to Vercel/Netlify/Cloudflare Pages. Add an SPA fallback (`/* → /index.html`).
 
 API:
@@ -66,8 +67,7 @@ API:
 ```env
 CLIENT_ORIGIN=https://duoconnect.example.com
 COOKIE_SAME_SITE=none
-COOKIE_SECURE=true          # automatic when NODE_ENV=production
-TRUST_PROXY=1
+TRUST_PROXY=1                # Secure cookies are set automatically when NODE_ENV=production
 ```
 
 Requirements for cross-site cookies:
@@ -113,7 +113,13 @@ The storage layer switches automatically and records `provider` per attachment. 
 
 STUN is enough for local and many home networks. Production needs TURN for restrictive NATs and corporate firewalls.
 
-Use a hosted TURN service (Twilio Network Traversal, Metered, Cloudflare Calls, Xirsys) or self-host coturn. Provide credentials through `ICE_SERVERS` as a JSON array. Use `turns:` on 5349 with valid certificates.
+ICE servers are configured on the **client**, not the API. Set `VITE_ICE_SERVERS` in the client build environment as a JSON array, then rebuild:
+
+```env
+VITE_ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:turn.example.com:3478","username":"...","credential":"..."}]
+```
+
+Leave it empty to use the default public STUN servers. Use a hosted TURN service (Twilio Network Traversal, Metered, Cloudflare Calls, Xirsys) or self-host coturn, and prefer `turns:` on 5349 with valid certificates.
 
 Because media is peer-to-peer, bandwidth scales with calls, not with the API. The server only relays signaling.
 

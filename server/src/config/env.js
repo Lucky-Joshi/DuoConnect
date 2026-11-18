@@ -7,11 +7,6 @@ const booleanish = z
   .optional()
   .transform((value) => value === 'true' || value === '1');
 
-const DEFAULT_ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
-
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
@@ -41,22 +36,6 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   CLOUDINARY_FOLDER: z.string().default('duoconnect'),
-
-  ICE_SERVERS: z
-    .string()
-    .optional()
-    .default(JSON.stringify(DEFAULT_ICE_SERVERS))
-    .transform((value, ctx) => {
-      if (!value.trim()) return DEFAULT_ICE_SERVERS;
-      try {
-        const parsed = JSON.parse(value);
-        if (!Array.isArray(parsed)) throw new Error('not an array');
-        return parsed;
-      } catch {
-        ctx.addIssue({ code: 'custom', message: 'ICE_SERVERS must be a JSON array' });
-        return DEFAULT_ICE_SERVERS;
-      }
-    }),
 
   LOG_LEVEL: z.string().default('info'),
 });

@@ -49,7 +49,7 @@ The interface is responsive down to small phones:
 | Client  | React 19, Vite 6, React Router 7, Zustand 5, Axios, Socket.IO Client, CSS Modules, Framer Motion, React Hook Form, React Hot Toast, Lucide, date-fns |
 | Server  | Node.js 20+, Express 5, Socket.IO 4, JWT, bcrypt, Multer, Zod, Pino, Helmet, express-rate-limit                                                      |
 | Data    | PostgreSQL 15+ / Supabase, or embedded PGlite for local development and tests                                                                        |
-| Calls   | Native WebRTC, STUN/TURN configurable via `ICE_SERVERS`, perfect negotiation                                                                         |
+| Calls   | Native WebRTC, STUN/TURN configurable via `VITE_ICE_SERVERS`, perfect negotiation                                                                    |
 | Tooling | npm workspaces, ESLint 9, Prettier, node:test, Supertest, Vitest, Testing Library, Docker, GitHub Actions                                            |
 
 ## Architecture at a glance
@@ -145,7 +145,7 @@ JWT_ACCESS_SECRET="$(openssl rand -hex 32)" docker compose up --build
 
 The server serves `client/dist` with SPA fallback when it exists. For a split deployment, host the client on any static host and set `VITE_API_URL` plus `CLIENT_ORIGIN`.
 
-Reliable calls across restrictive networks need a TURN server. Configure `ICE_SERVERS` with your TURN credentials before production use. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Reliable calls across restrictive networks need a TURN server. Set `VITE_ICE_SERVERS` in the client build environment with your TURN credentials when needed. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Security notes
 

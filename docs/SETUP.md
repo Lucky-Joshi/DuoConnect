@@ -74,25 +74,6 @@ The server reads `server/.env` (and `process.env`). Every value has a safe devel
 
 If Cloudinary is not configured, files are stored on disk and served from `/uploads`.
 
-### WebRTC
-
-```env
-ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"},{"urls":"stun:stun1.l.google.com:19302"}]
-```
-
-Public STUN is enough for local testing and most home networks. Add a TURN entry for production:
-
-```json
-[
-  { "urls": "stun:stun.l.google.com:19302" },
-  {
-    "urls": ["turn:turn.example.com:3478", "turns:turn.example.com:5349"],
-    "username": "duo",
-    "credential": "secret"
-  }
-]
-```
-
 ## Client environment
 
 The client uses the Vite proxy in development, so no environment file is needed. For a split deployment:
@@ -102,6 +83,18 @@ VITE_API_URL=https://api.example.com
 ```
 
 Leave it empty for same-origin deploys where Express serves `client/dist`.
+
+### WebRTC (ICE servers)
+
+ICE servers are read by the browser at build time from `VITE_ICE_SERVERS`. Leave it empty to use the two default public STUN servers; most local and home networks work without any configuration.
+
+Add TURN only when calls fail across restrictive NATs or firewalls:
+
+```env
+VITE_ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"},{"urls":["turn:turn.example.com:3478","turns:turn.example.com:5349"],"username":"duo","credential":"secret"}]
+```
+
+Rebuild the client after changing this value. Use `turns:` on 5349 with a valid certificate where possible.
 
 ## Supabase
 
@@ -161,6 +154,6 @@ npm run dev
 
 **Camera or microphone blocked.** Browsers require a secure context. `localhost` is allowed; remote HTTP is not. Check site permissions and that another app is not holding the device.
 
-**Calls connect on LAN but not across networks.** Add a TURN server to `ICE_SERVERS`. STUN alone cannot traverse symmetric NATs.
+**Calls connect on LAN but not across networks.** Add a TURN server to `VITE_ICE_SERVERS` and rebuild the client. STUN alone cannot traverse symmetric NATs.
 
 **Uploads fail on serverless hosts.** Local disk is ephemeral. Configure Cloudinary or mount persistent storage.

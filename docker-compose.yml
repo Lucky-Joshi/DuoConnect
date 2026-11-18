@@ -16,7 +16,6 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
-      ICE_SERVERS: ${ICE_SERVERS:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - duoconnect-data:/app/server/.data
