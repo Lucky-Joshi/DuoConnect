@@ -9,6 +9,10 @@ process.env.DATABASE_URL = '';
 process.env.PGLITE_MEMORY = 'true';
 process.env.LOG_LEVEL = 'silent';
 process.env.JWT_ACCESS_SECRET = 'duoconnect-test-access-secret-123456';
+// Keep tests independent of any Cloudinary credentials in a local .env.
+process.env.CLOUDINARY_CLOUD_NAME = '';
+process.env.CLOUDINARY_API_KEY = '';
+process.env.CLOUDINARY_API_SECRET = '';
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
