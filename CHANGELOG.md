@@ -6,10 +6,8 @@ Commit hashes are included so every change can be traced back to its commit.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-No version tags have been published yet, so everything to date is listed under
-`Unreleased`.
 
-## [Unreleased]
+## [1.0.0] - 2026-11-19
 
 ### Added
 
