@@ -2,7 +2,13 @@ import { create } from 'zustand';
 import toast from 'react-hot-toast';
 import { createNoiseGate } from '../lib/audio';
 import { emitWithAck } from '../lib/socket';
-import { CallPeer, mediaErrorMessage, stopStream } from '../lib/webrtc';
+import {
+  CallPeer,
+  mediaErrorMessage,
+  screenShareErrorMessage,
+  screenShareSupport,
+  stopStream,
+} from '../lib/webrtc';
 import { startRingtone, vibrate } from '../lib/utils';
 import { useAuthStore } from './authStore';
 
@@ -417,13 +423,14 @@ export const useCallStore = create((set, get) => ({
       await get().stopScreenShare();
       return;
     }
-    if (!navigator.mediaDevices?.getDisplayMedia) {
-      toast.error('Screen sharing is not supported in this browser.');
+    const support = screenShareSupport();
+    if (!support.supported) {
+      toast.error(screenShareErrorMessage(support.reason));
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const stream = await support.getDisplayMedia({ video: true, audio: false });
       const track = stream.getVideoTracks()[0];
       if (!track) return;
       track.enabled = true;
@@ -436,7 +443,11 @@ export const useCallStore = create((set, get) => ({
       set({ sharing: true });
       relaySignal('media', { kind: 'screen', enabled: true });
     } catch (error) {
-      if (error?.name !== 'NotAllowedError') toast.error('Screen sharing could not be started.');
+      if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
+        toast.error('Screen sharing was cancelled or blocked. Allow sharing and try again.');
+      } else {
+        toast.error('Screen sharing could not be started.');
+      }
     }
   },
 

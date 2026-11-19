@@ -291,6 +291,34 @@ export function stopStream(stream) {
   });
 }
 
+/**
+ * Screen capture needs a secure context (HTTPS or localhost) and the
+ * getDisplayMedia API. A few engines expose it under a prefixed name, so check
+ * both before telling the user their browser cannot share a screen.
+ */
+export function screenShareSupport() {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+    return { supported: false, reason: 'unsupported' };
+  }
+  if (window.isSecureContext === false) {
+    return { supported: false, reason: 'insecure' };
+  }
+  const mediaDevices = navigator.mediaDevices;
+  const getDisplayMedia =
+    mediaDevices?.getDisplayMedia ?? mediaDevices?.webkitGetDisplayMedia ?? null;
+  if (typeof getDisplayMedia !== 'function') {
+    return { supported: false, reason: 'unsupported' };
+  }
+  return { supported: true, getDisplayMedia: getDisplayMedia.bind(mediaDevices) };
+}
+
+export function screenShareErrorMessage(reason) {
+  if (reason === 'insecure') {
+    return 'Screen sharing needs a secure connection. Open DuoConnect over HTTPS or on localhost.';
+  }
+  return 'Screen sharing is not available in this browser. Use an up-to-date Chrome, Edge, or Firefox on a computer.';
+}
+
 export function mediaErrorMessage(error) {
   switch (error?.name) {
     case 'NotAllowedError':
