@@ -29,6 +29,11 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function HomeRoute() {
+  const status = useAuthStore((state) => state.status);
+  return status === 'authenticated' ? <Navigate to="/app" replace /> : <LandingPage />;
+}
+
 export default function App() {
   const status = useAuthStore((state) => state.status);
   const bootstrap = useAuthStore((state) => state.bootstrap);
@@ -63,7 +68,7 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route
