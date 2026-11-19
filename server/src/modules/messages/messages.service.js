@@ -148,6 +148,16 @@ export async function sendMessage(userId, chatId, input) {
   const access = await assertMember(chatId, userId, { write: true });
   const memberIds = await chatsRepo.getMemberIds(chatId);
 
+  // A retry after a lost acknowledgement must return the original message
+  // instead of inserting a duplicate.
+  if (input.clientId) {
+    const existingId = await repo.findMessageByClientId(userId, input.clientId);
+    if (existingId) {
+      const message = await hydrateOne(existingId);
+      return { message, access };
+    }
+  }
+
   const attachmentIds = input.attachmentIds ?? [];
   const attachments = await attachmentsRepo.getUnclaimedAttachments(attachmentIds, userId);
   if (attachments.length !== attachmentIds.length) {
@@ -169,6 +179,7 @@ export async function sendMessage(userId, chatId, input) {
     if (replyInfo.deleted_at) replyToId = null;
   }
 
+  let duplicate = false;
   const messageId = await withTransaction(async (tx) => {
     const id = await repo.insertMessage(tx, {
       chatId,
@@ -177,7 +188,12 @@ export async function sendMessage(userId, chatId, input) {
       body,
       replyToId,
       metadata: {},
+      clientId: input.clientId ?? null,
     });
+    if (!id) {
+      duplicate = true;
+      return repo.findMessageByClientId(userId, input.clientId, tx);
+    }
     await attachmentsRepo.claimAttachments(tx, attachmentIds, id);
     await repo.insertReceipts(tx, id, chatId, userId);
     await tx.query('UPDATE chats SET last_message_at = now(), updated_at = now() WHERE id = $1', [
@@ -187,8 +203,11 @@ export async function sendMessage(userId, chatId, input) {
   });
 
   const message = await hydrateOne(messageId);
-  await emitNewMessage(message, memberIds, input.clientId ?? null);
-  await notifyOfflineMembers(chatId, userId, message);
+  if (!message) throw badRequest('This message is no longer available.');
+  if (!duplicate && message) {
+    await emitNewMessage(message, memberIds, input.clientId ?? null);
+    await notifyOfflineMembers(chatId, userId, message);
+  }
 
   return { message, access };
 }

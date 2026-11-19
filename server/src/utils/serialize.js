@@ -108,6 +108,7 @@ export function mapMessage(row, { attachments = [], receipts = [], pinned = fals
     metadata: row.metadata ?? {},
     replyTo,
     forwardedFromId: row.forwarded_from_id ?? null,
+    clientId: row.client_id ?? null,
     attachments,
     receipts: receipts.map((receipt) => ({
       userId: receipt.user_id,

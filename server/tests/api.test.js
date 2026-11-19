@@ -161,6 +161,39 @@ test('session lifecycle: me, refresh rotation, sessions, and logout', async () =
   assert.equal(afterLogout.body.error.code, 'SESSION_EXPIRED');
 });
 
+test('change password verifies the current password and updates the credential', async () => {
+  const a = await register('cp');
+  const nextPassword = 'Changed456!';
+
+  const wrong = await client
+    .post('/api/auth/change-password')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ currentPassword: 'WrongPassword1', newPassword: nextPassword });
+  assert.equal(wrong.status, 400);
+  assert.equal(wrong.body.error.details[0].path, 'currentPassword');
+
+  const changed = await client
+    .post('/api/auth/change-password')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ currentPassword: PASSWORD, newPassword: nextPassword });
+  assert.equal(changed.status, 200, JSON.stringify(changed.body));
+  assert.equal(changed.body.data.success, true);
+
+  const oldLogin = await client
+    .post('/api/auth/login')
+    .send({ identifier: a.email, password: PASSWORD });
+  assert.equal(oldLogin.status, 401);
+
+  const newLogin = await client
+    .post('/api/auth/login')
+    .send({ identifier: a.email, password: nextPassword });
+  assert.equal(newLogin.status, 200, JSON.stringify(newLogin.body));
+  assert.ok(newLogin.body.data.accessToken);
+
+  const me = await client.get('/api/auth/me').set('Authorization', `Bearer ${a.token}`);
+  assert.equal(me.status, 200);
+});
+
 test('profile, settings, search, and public profiles', async () => {
   const a = await register('p');
   const b = await register('q');
@@ -417,6 +450,44 @@ test('uploads, attachment claiming, notifications, and calls history', async () 
   const calls = await client.get('/api/calls').set('Authorization', `Bearer ${a.token}`);
   assert.equal(calls.status, 200);
   assert.ok(Array.isArray(calls.body.data));
+});
+
+test('message retries with the same clientId are idempotent', async () => {
+  const a = await register('ra');
+  const b = await register('rb');
+  await client
+    .post('/api/friends/requests')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ userId: b.user.id });
+  const incoming = await client
+    .get('/api/friends/requests')
+    .set('Authorization', `Bearer ${b.token}`);
+  const pending = incoming.body.data.incoming.find((entry) => entry.user.id === a.user.id);
+  const accepted = await client
+    .post(`/api/friends/requests/${pending.id}/accept`)
+    .set('Authorization', `Bearer ${b.token}`);
+  const chatId = accepted.body.data.chatId;
+  const key = `retry-${Date.now()}`;
+
+  const first = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'hello', clientId: key });
+  assert.equal(first.status, 201, JSON.stringify(first.body));
+  assert.equal(first.body.data.clientId, key);
+
+  const retry = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'hello', clientId: key });
+  assert.equal(retry.status, 201, JSON.stringify(retry.body));
+  assert.equal(retry.body.data.id, first.body.data.id);
+
+  const history = await client
+    .get(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(history.status, 200);
+  assert.equal(history.body.data.items.filter((item) => item.clientId === key).length, 1);
 });
 
 test('push subscription management and active-call lookup', async () => {

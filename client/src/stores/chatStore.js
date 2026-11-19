@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import { api, unwrap } from '../lib/api';
 import { emitEvent, emitWithAck, getSocket } from '../lib/socket';
 import { MESSAGE_PAGE_SIZE, TYPING_IDLE_MS, TYPING_REFRESH_MS } from '../lib/constants';
+import { dequeue, enqueue, listQueued } from '../lib/outbox';
 import { messagePreview } from '../lib/utils';
 import { useAuthStore } from './authStore';
 
@@ -9,6 +11,7 @@ const typingTimers = new Map();
 const typingSentAt = new Map();
 const typingIdleTimers = new Map();
 const readPending = new Map();
+let flushing = false;
 
 function emptyThread() {
   return {
@@ -91,6 +94,44 @@ function mergeMessage(items, message, optimisticClientId = null) {
   if (!replaced)
     next.push({ ...message, pending: false, clientId: key ?? message.clientId ?? null });
   return sortBySeq(next);
+}
+
+function unsentMessages(items) {
+  return (items ?? []).filter((item) => item.pending || item.failed);
+}
+
+function withUnsentMessages(serverItems, localItems) {
+  const unsent = unsentMessages(localItems);
+  return unsent.length ? sortBySeq([...(serverItems ?? []), ...unsent]) : (serverItems ?? []);
+}
+
+function sendErrorCode(error) {
+  return error?.code ?? error?.response?.data?.error?.code ?? error?.data?.error?.code ?? null;
+}
+
+function isPermanentSendError(error) {
+  const code = sendErrorCode(error);
+  return Boolean(code) && code !== 'SOCKET_OFFLINE' && code !== 'RATE_LIMITED';
+}
+
+async function deliver(payload) {
+  const socket = getSocket();
+  if (socket?.connected) {
+    try {
+      return await emitWithAck('message:send', payload);
+    } catch (error) {
+      const code = sendErrorCode(error);
+      const retryable =
+        !code ||
+        code === 'SOCKET_OFFLINE' ||
+        code === 'RATE_LIMITED' ||
+        /took too long|timeout|offline|network/i.test(error?.message ?? '');
+      // The server deduplicates on clientId, so a lost ack can safely fall
+      // back to REST. Validation and permission errors cannot.
+      if (!retryable) throw error;
+    }
+  }
+  return unwrap(await api.post(`/chats/${payload.chatId}/messages`, payload));
 }
 
 function receiptFor(message, userId) {
@@ -176,7 +217,7 @@ export const useChatStore = create((set, get) => ({
         threads: {
           ...state.threads,
           [chatId]: {
-            items: data?.items ?? [],
+            items: withUnsentMessages(data?.items, state.threads[chatId]?.items),
             hasMore: Boolean(data?.hasMore),
             hasMoreNewer: Boolean(data?.hasMoreNewer),
             nextCursor: data?.nextCursor ?? null,
@@ -261,6 +302,65 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  /** Send one queued/new message, keeping its idempotency key across retries. */
+  dispatchEntry: async (entry, { queueOnFailure = true } = {}) => {
+    const { clientId: key, chatId, payload } = entry;
+    const optimistic = { ...(entry.optimistic ?? {}), clientId: key, chatId };
+    const matches = (item) =>
+      item.clientId === key || (Boolean(optimistic.id) && item.id === optimistic.id);
+
+    set((state) => {
+      const thread = state.threads[chatId] ?? emptyThread();
+      const exists = thread.items.some(matches);
+      const items = exists
+        ? thread.items.map((item) =>
+            matches(item)
+              ? { ...optimistic, ...item, pending: true, failed: false, _payload: payload }
+              : item,
+          )
+        : [...thread.items, { ...optimistic, pending: true, failed: false, _payload: payload }];
+      return {
+        threads: {
+          ...state.threads,
+          [chatId]: { ...thread, items: sortBySeq(items), loaded: true },
+        },
+        chats: bumpChat(state.chats, optimistic),
+      };
+    });
+
+    try {
+      const message = await deliver(payload);
+      dequeue(key);
+      get().stopTyping(chatId);
+      set((state) => ({
+        threads: {
+          ...state.threads,
+          [chatId]: {
+            ...(state.threads[chatId] ?? emptyThread()),
+            items: mergeMessage(state.threads[chatId]?.items ?? [], message, key),
+          },
+        },
+        chats: bumpChat(state.chats, message),
+      }));
+      return message;
+    } catch (error) {
+      if (isPermanentSendError(error)) dequeue(key);
+      else if (queueOnFailure) enqueue({ ...entry, userId: useAuthStore.getState().user?.id });
+      set((state) => ({
+        threads: {
+          ...state.threads,
+          [chatId]: {
+            ...(state.threads[chatId] ?? emptyThread()),
+            items: (state.threads[chatId]?.items ?? []).map((item) =>
+              matches(item) ? { ...item, pending: false, failed: true } : item,
+            ),
+          },
+        },
+      }));
+      throw error;
+    }
+  },
+
   sendMessage: async (
     chatId,
     {
@@ -286,7 +386,7 @@ export const useChatStore = create((set, get) => ({
       attachmentIds,
       clientId: key,
     };
-    const pending = {
+    const optimistic = {
       id: `pending:${key}`,
       clientId: key,
       seq,
@@ -326,81 +426,64 @@ export const useChatStore = create((set, get) => ({
         ...state.threads,
         [chatId]: {
           ...(state.threads[chatId] ?? emptyThread()),
-          items: [...(state.threads[chatId]?.items ?? []), pending],
+          items: [...(state.threads[chatId]?.items ?? []), optimistic],
           loaded: true,
         },
       },
-      chats: bumpChat(state.chats, pending),
+      chats: bumpChat(state.chats, optimistic),
     }));
 
-    try {
-      let message;
-      if (getSocket()?.connected) {
-        message = await emitWithAck('message:send', payload);
-      } else {
-        message = unwrap(
-          await api.post(`/chats/${chatId}/messages`, {
-            body,
-            type,
-            replyToId,
-            attachmentIds,
-            clientId: key,
-          }),
-        );
-      }
-
-      get().stopTyping(chatId);
-      set((state) => ({
-        threads: {
-          ...state.threads,
-          [chatId]: {
-            ...(state.threads[chatId] ?? emptyThread()),
-            items: mergeMessage(state.threads[chatId]?.items ?? [], message, key),
-          },
-        },
-        chats: bumpChat(state.chats, message),
-      }));
-      return message;
-    } catch (error) {
-      set((state) => ({
-        threads: {
-          ...state.threads,
-          [chatId]: {
-            ...(state.threads[chatId] ?? emptyThread()),
-            items: (state.threads[chatId]?.items ?? []).map((item) =>
-              item.id === pending.id ? { ...item, pending: false, failed: true } : item,
-            ),
-          },
-        },
-      }));
-      throw error;
-    }
+    return get().dispatchEntry({
+      clientId: key,
+      chatId,
+      payload,
+      optimistic,
+      userId: me.id,
+    });
   },
 
   retryMessage: async (chatId, message) => {
     const payload = message._payload;
-    if (!payload) return;
-    set((state) => ({
-      threads: {
-        ...state.threads,
-        [chatId]: {
-          ...(state.threads[chatId] ?? emptyThread()),
-          items: (state.threads[chatId]?.items ?? []).filter((item) => item.id !== message.id),
-        },
-      },
-    }));
-    return get().sendMessage(chatId, {
-      body: payload.body,
-      type: payload.type,
-      replyToId: payload.replyToId,
-      replyTo: message.replyTo,
-      attachmentIds: payload.attachmentIds,
-      attachments: message.attachments,
+    if (!payload?.clientId) return null;
+    dequeue(payload.clientId);
+    return get().dispatchEntry({
+      clientId: payload.clientId,
+      chatId,
+      payload,
+      optimistic: message,
+      userId: useAuthStore.getState().user?.id,
     });
+  },
+
+  /** Resend every locally queued message once connectivity is back. */
+  flushOutbox: async () => {
+    const me = useAuthStore.getState().user;
+    if (!me || flushing) return { sent: 0, failed: 0 };
+    const queued = listQueued(me.id);
+    if (!queued.length) return { sent: 0, failed: 0 };
+
+    flushing = true;
+    let sent = 0;
+    let failed = 0;
+    try {
+      for (const entry of queued) {
+        try {
+          await get().dispatchEntry(entry);
+          sent += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+    } finally {
+      flushing = false;
+    }
+    if (sent) toast.success(`${sent} unsent message${sent === 1 ? '' : 's'} delivered.`);
+    return { sent, failed };
   },
 
   receiveMessage: (message) => {
     const state = get();
+    if (message.clientId) dequeue(message.clientId);
     if (!state.threads[message.chatId]) {
       // A conversation we do not have yet (e.g. accepted while offline).
       get().fetchChats();

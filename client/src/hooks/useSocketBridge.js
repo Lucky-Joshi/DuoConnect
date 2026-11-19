@@ -40,6 +40,11 @@ export function useSocketBridge() {
     };
 
     on('connect', () => {
+      // Deliver anything that failed while offline before refreshing threads.
+      useChatStore
+        .getState()
+        .flushOutbox()
+        .catch(() => {});
       if (connectedBefore) {
         useChatStore
           .getState()
@@ -218,9 +223,18 @@ export function useSocketBridge() {
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    const onOnline = () => {
+      useChatStore
+        .getState()
+        .flushOutbox()
+        .catch(() => {});
+    };
+    window.addEventListener('online', onOnline);
+
     return () => {
       detach.forEach((off) => off());
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', onOnline);
     };
   }, [status]);
 }

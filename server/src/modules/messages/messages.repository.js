@@ -2,7 +2,7 @@ import { query } from '../../db/index.js';
 
 const MESSAGE_SELECT = `
   SELECT m.id, m.seq, m.chat_id, m.sender_id, m.type, m.body, m.reply_to_id,
-         m.forwarded_from_id, m.metadata, m.edited_at, m.deleted_at, m.created_at,
+         m.forwarded_from_id, m.metadata, m.client_id, m.edited_at, m.deleted_at, m.created_at,
          u.username AS sender_username,
          u.display_name AS sender_display_name,
          u.avatar_url AS sender_avatar_url,
@@ -74,10 +74,23 @@ export async function getMessageChatInfo(messageId) {
   return rows[0] ?? null;
 }
 
+const queryRunner = { query: (text, params) => query(text, params) };
+
+/** Look up a message previously inserted with this client-generated key. */
+export async function findMessageByClientId(senderId, clientId, client = queryRunner) {
+  if (!clientId) return null;
+  const { rows } = await client.query(
+    'SELECT id FROM messages WHERE sender_id = $1 AND client_id = $2 LIMIT 1',
+    [senderId, clientId],
+  );
+  return rows[0]?.id ?? null;
+}
+
 export async function insertMessage(client, fields) {
   const { rows } = await client.query(
-    `INSERT INTO messages (chat_id, sender_id, type, body, reply_to_id, forwarded_from_id, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO messages (chat_id, sender_id, type, body, reply_to_id, forwarded_from_id, metadata, client_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+     ON CONFLICT (sender_id, client_id) WHERE client_id IS NOT NULL DO NOTHING
      RETURNING id`,
     [
       fields.chatId,
@@ -87,9 +100,11 @@ export async function insertMessage(client, fields) {
       fields.replyToId ?? null,
       fields.forwardedFromId ?? null,
       JSON.stringify(fields.metadata ?? {}),
+      fields.clientId ?? null,
     ],
   );
-  return rows[0].id;
+  // A null id means this clientId was already inserted by a previous attempt.
+  return rows[0]?.id ?? null;
 }
 
 export async function insertReceipts(client, messageId, chatId, senderId) {
