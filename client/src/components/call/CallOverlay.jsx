@@ -18,6 +18,7 @@ import {
 import { Avatar, IconButton } from '../ui/Primitives';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
+import { screenShareSupport } from '../../lib/webrtc';
 import { cn, formatCallDuration, presenceLabel } from '../../lib/utils';
 import { usePresenceStore } from '../../stores/presenceStore';
 import styles from './CallOverlay.module.css';
@@ -56,7 +57,7 @@ function MediaVideo({ stream, muted = false, className, ...rest }) {
   return <video ref={ref} className={className} autoPlay playsInline muted={muted} {...rest} />;
 }
 
-function MediaAudio({ stream }) {
+function MediaAudio({ stream, muted = false }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ function MediaAudio({ stream }) {
     if (stream) element.play?.().catch(() => {});
   }, [stream]);
 
-  return <audio ref={ref} autoPlay />;
+  return <audio ref={ref} autoPlay muted={muted} />;
 }
 
 function Waveform({ active }) {
@@ -79,7 +80,7 @@ function Waveform({ active }) {
   );
 }
 
-function ControlButton({ label, active, tone, onClick, children, disabled, className }) {
+function ControlButton({ label, title, active, tone, onClick, children, disabled, className }) {
   return (
     <button
       type="button"
@@ -93,7 +94,7 @@ function ControlButton({ label, active, tone, onClick, children, disabled, class
       )}
       onClick={onClick}
       aria-label={label}
-      title={label}
+      title={title ?? label}
       disabled={disabled}
     >
       {children}
@@ -123,6 +124,7 @@ export function CallOverlay() {
   const presence = usePresenceStore((state) => state.byId);
   const elapsed = useElapsed(startedAt);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [screenShareSupported] = useState(() => screenShareSupport().supported);
   const hideTimer = useRef(null);
 
   const active = ['incoming', 'outgoing', 'connecting', 'ongoing', 'ended'].includes(status);
@@ -136,7 +138,7 @@ export function CallOverlay() {
     if (status !== 'ongoing' || minimized) return undefined;
     hideTimer.current = setTimeout(() => setControlsVisible(false), 4200);
     return () => clearTimeout(hideTimer.current);
-  }, [status, minimized, micEnabled, camEnabled]);
+  }, [status, minimized, micEnabled, camEnabled, sharing]);
 
   const qualityText = useMemo(() => {
     if (!quality) return null;
@@ -171,10 +173,11 @@ export function CallOverlay() {
             ? (endingReason ?? 'Call ended')
             : formatCallDuration(elapsed);
 
-  const remoteVideoOn = !isVideo
-    ? false
-    : Boolean(remoteStream) && remoteMedia.videoEnabled !== false;
-  const localVideoOn = isVideo && localStream && (camEnabled || sharing);
+  // A shared screen also carries video during an audio call, so render it
+  // whenever the peer reports sharing rather than only for video calls.
+  const remoteVideoOn =
+    Boolean(remoteStream) && (isVideo || remoteMedia.sharing) && remoteMedia.videoEnabled !== false;
+  const localVideoOn = Boolean(localStream) && (sharing || (isVideo && camEnabled));
   const canControl = ['connecting', 'ongoing'].includes(status);
 
   if (status === 'ended') {
@@ -269,14 +272,16 @@ export function CallOverlay() {
             <div className={styles.stage}>
               {showStage ? (
                 <>
-                  {isVideo && remoteStream ? (
+                  {remoteStream && (isVideo || remoteMedia.sharing) ? (
                     <MediaVideo
                       stream={remoteStream}
                       className={cn(styles.remoteVideo, !remoteVideoOn && styles.remoteVideoHidden)}
                     />
                   ) : null}
 
-                  {!isVideo && remoteStream ? <MediaAudio stream={remoteStream} /> : null}
+                  {!isVideo && remoteStream ? (
+                    <MediaAudio stream={remoteStream} muted={remoteMedia.sharing} />
+                  ) : null}
 
                   {!remoteVideoOn ? (
                     <div className={styles.avatarStage}>
@@ -432,15 +437,20 @@ export function CallOverlay() {
                             </ControlButton>
                           ) : null}
 
-                          {isVideo ? (
-                            <ControlButton
-                              label={sharing ? 'Stop share' : 'Share screen'}
-                              active={sharing}
-                              onClick={() => useCallStore.getState().toggleScreenShare()}
-                            >
-                              <MonitorUp size={21} />
-                            </ControlButton>
-                          ) : null}
+                          <ControlButton
+                            label={sharing ? 'Stop share' : 'Share screen'}
+                            title={
+                              sharing
+                                ? 'Stop sharing your screen'
+                                : screenShareSupported
+                                  ? 'Share your screen with your partner'
+                                  : 'Screen sharing is limited on this device — tap to see why'
+                            }
+                            active={sharing}
+                            onClick={() => useCallStore.getState().toggleScreenShare()}
+                          >
+                            <MonitorUp size={21} />
+                          </ControlButton>
 
                           <ControlButton
                             label="Minimize"
@@ -463,9 +473,11 @@ export function CallOverlay() {
 
                     {canControl ? (
                       <p className={styles.controlHint}>
-                        {isVideo
-                          ? 'Tip: share your screen or flip the camera from the controls above.'
-                          : 'Audio call · Your microphone stays under your control.'}
+                        {!screenShareSupported
+                          ? 'Screen sharing needs a desktop browser over HTTPS. Open DuoConnect in its own tab on a computer.'
+                          : isVideo
+                            ? 'Tip: share your screen or flip the camera from the controls above.'
+                            : 'Tip: you can share your screen even in an audio call.'}
                       </p>
                     ) : null}
                   </footer>

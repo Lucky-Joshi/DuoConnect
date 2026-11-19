@@ -291,32 +291,88 @@ export function stopStream(stream) {
   });
 }
 
+function displayMediaApi() {
+  const mediaDevices = typeof navigator === 'undefined' ? null : navigator.mediaDevices;
+  const fn =
+    mediaDevices?.getDisplayMedia ??
+    mediaDevices?.webkitGetDisplayMedia ??
+    mediaDevices?.mozGetDisplayMedia ??
+    null;
+  return typeof fn === 'function' ? fn.bind(mediaDevices) : null;
+}
+
+function isMobileBrowser() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent ?? '');
+}
+
 /**
- * Screen capture needs a secure context (HTTPS or localhost) and the
- * getDisplayMedia API. A few engines expose it under a prefixed name, so check
- * both before telling the user their browser cannot share a screen.
+ * Informational only. Never use this to block a share attempt: some browsers
+ * expose the API late, or only after a user gesture. The real request below is
+ * the source of truth, so a false negative here cannot stop a working share.
  */
 export function screenShareSupport() {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') {
     return { supported: false, reason: 'unsupported' };
   }
+  if (window.self !== window.top) {
+    return { supported: false, reason: 'embedded' };
+  }
   if (window.isSecureContext === false) {
     return { supported: false, reason: 'insecure' };
   }
-  const mediaDevices = navigator.mediaDevices;
-  const getDisplayMedia =
-    mediaDevices?.getDisplayMedia ?? mediaDevices?.webkitGetDisplayMedia ?? null;
-  if (typeof getDisplayMedia !== 'function') {
-    return { supported: false, reason: 'unsupported' };
+  const getDisplayMedia = displayMediaApi();
+  if (!getDisplayMedia) {
+    return { supported: false, reason: isMobileBrowser() ? 'mobile' : 'unsupported' };
   }
-  return { supported: true, getDisplayMedia: getDisplayMedia.bind(mediaDevices) };
+  return { supported: true, getDisplayMedia };
+}
+
+/**
+ * Mirrors the reference implementation: call getDisplayMedia directly from the
+ * click handler so the browser's transient user activation is preserved. If the
+ * API is genuinely absent, throw a named error the UI can explain.
+ */
+export async function requestDisplayMedia(constraints = { video: true, audio: false }) {
+  const getDisplayMedia = displayMediaApi();
+  if (!getDisplayMedia) {
+    const error = new Error('Screen capture API is not available');
+    error.name = 'ScreenCaptureUnavailable';
+    throw error;
+  }
+  return getDisplayMedia(constraints);
 }
 
 export function screenShareErrorMessage(reason) {
-  if (reason === 'insecure') {
-    return 'Screen sharing needs a secure connection. Open DuoConnect over HTTPS or on localhost.';
+  switch (reason) {
+    case 'embedded':
+      return 'Screen sharing is blocked inside an embedded frame. Open DuoConnect in its own tab to share your screen.';
+    case 'insecure':
+      return 'Screen sharing needs a secure connection. Open DuoConnect over HTTPS or on localhost.';
+    case 'mobile':
+      return 'Screen sharing needs a desktop browser. Open DuoConnect on a computer with Chrome, Edge, or Firefox.';
+    default:
+      return 'Screen sharing is not available in this browser. Use an up-to-date Chrome, Edge, or Firefox on a computer.';
   }
-  return 'Screen sharing is not available in this browser. Use an up-to-date Chrome, Edge, or Firefox on a computer.';
+}
+
+export function screenCaptureErrorMessage(error) {
+  switch (error?.name) {
+    case 'ScreenCaptureUnavailable':
+    case 'NotSupportedError':
+      return screenShareErrorMessage('unsupported');
+    case 'SecurityError':
+    case 'NotSecureError':
+      return screenShareErrorMessage('insecure');
+    case 'NotAllowedError':
+    case 'AbortError':
+    case 'PermissionDeniedError':
+      return 'Screen sharing was cancelled or blocked. Allow sharing and try again.';
+    case 'InvalidStateError':
+      return 'Screen sharing is already active. Stop the current share before starting another.';
+    default:
+      return 'Screen sharing could not be started. Close other sharing apps and try again.';
+  }
 }
 
 export function mediaErrorMessage(error) {

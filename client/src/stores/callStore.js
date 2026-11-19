@@ -5,8 +5,8 @@ import { emitWithAck } from '../lib/socket';
 import {
   CallPeer,
   mediaErrorMessage,
-  screenShareErrorMessage,
-  screenShareSupport,
+  requestDisplayMedia,
+  screenCaptureErrorMessage,
   stopStream,
 } from '../lib/webrtc';
 import { startRingtone, vibrate } from '../lib/utils';
@@ -35,6 +35,8 @@ let peer = null;
 let audioTrack = null;
 let cameraTrack = null;
 let screenTrack = null;
+let screenStream = null;
+let stoppingShare = false;
 let localStream = null;
 let rawStream = null;
 let noiseGate = null;
@@ -74,8 +76,11 @@ function cleanupMedia() {
   noiseGate = null;
   stopStream(localStream);
   stopStream(rawStream);
+  if (screenStream) stopStream(screenStream);
   if (screenTrack) stopStream(new MediaStream([screenTrack]));
+  screenStream = null;
   screenTrack = null;
+  stoppingShare = false;
   cameraTrack = null;
   audioTrack = null;
   localStream = null;
@@ -423,18 +428,32 @@ export const useCallStore = create((set, get) => ({
       await get().stopScreenShare();
       return;
     }
-    const support = screenShareSupport();
-    if (!support.supported) {
-      toast.error(screenShareErrorMessage(support.reason));
+
+    // Ask the browser directly. A cached "unsupported" flag can be wrong (the
+    // API may only appear after a user gesture), so the real call is the only
+    // reliable answer — just like the reference implementation.
+    let stream;
+    try {
+      stream = await requestDisplayMedia({ video: true, audio: false });
+    } catch (error) {
+      toast.error(screenCaptureErrorMessage(error));
+      return;
+    }
+
+    const track = stream.getVideoTracks()[0];
+    if (!track) {
+      stopStream(stream);
+      toast.error('No screen was selected. Try sharing again.');
       return;
     }
 
     try {
-      const stream = await support.getDisplayMedia({ video: true, audio: false });
-      const track = stream.getVideoTracks()[0];
-      if (!track) return;
       track.enabled = true;
+      screenStream = stream;
       screenTrack = track;
+      // The browser fires "ended" when the user stops sharing from its own UI.
+      // Restore the camera for every peer instead of leaving them with a frozen
+      // frame — the same lifecycle the reference app uses.
       track.addEventListener('ended', () => {
         if (get().sharing) get().stopScreenShare();
       });
@@ -442,28 +461,33 @@ export const useCallStore = create((set, get) => ({
       await peer?.replaceVideoTrack(track);
       set({ sharing: true });
       relaySignal('media', { kind: 'screen', enabled: true });
-    } catch (error) {
-      if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
-        toast.error('Screen sharing was cancelled or blocked. Allow sharing and try again.');
-      } else {
-        toast.error('Screen sharing could not be started.');
-      }
+    } catch {
+      stopStream(stream);
+      screenStream = null;
+      screenTrack = null;
+      rebuildLocalStream(set);
+      toast.error('Screen sharing could not be started. Try again.');
     }
   },
 
   stopScreenShare: async () => {
-    const wasSharing = get().sharing;
-    if (screenTrack) {
-      const track = screenTrack;
+    if (stoppingShare) return;
+    stoppingShare = true;
+    try {
+      const wasSharing = get().sharing;
+      if (screenStream) stopStream(screenStream);
+      else if (screenTrack) stopStream(new MediaStream([screenTrack]));
+      screenStream = null;
       screenTrack = null;
-      stopStream(new MediaStream([track]));
-    }
-    rebuildLocalStream(set);
-    await peer?.replaceVideoTrack(cameraTrack ?? null);
-    set({ sharing: false });
-    if (wasSharing) {
-      relaySignal('media', { kind: 'screen', enabled: false });
-      relaySignal('media', { kind: 'video', enabled: get().camEnabled });
+      rebuildLocalStream(set);
+      await peer?.replaceVideoTrack(cameraTrack ?? null);
+      set({ sharing: false });
+      if (wasSharing) {
+        relaySignal('media', { kind: 'screen', enabled: false });
+        relaySignal('media', { kind: 'video', enabled: get().camEnabled });
+      }
+    } finally {
+      stoppingShare = false;
     }
   },
 
