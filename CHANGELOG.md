@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Built-in GIF picker with curated animated reactions, safe markdown formatting,
-  emoji reactions, and link preview cards in chat.
+  emoji reactions, and link preview cards in chat. (`8c6eb3e`)
 - Curated sticker sharing in chat, with a picker, rich rendering, previews,
   forwarding, and server-side validation. (`184c2f8`)
 - Live username availability feedback during sign-up, with a debounced
