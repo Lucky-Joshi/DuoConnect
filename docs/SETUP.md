@@ -66,7 +66,7 @@ The server reads `server/.env` (and `process.env`). Every value has a safe devel
 | Variable                | Default      | Notes                              |
 | ----------------------- | ------------ | ---------------------------------- |
 | `UPLOAD_DIR`            | `uploads`    | Relative to `server/`              |
-| `MAX_UPLOAD_MB`         | `15`         | Per file                           |
+| `MAX_UPLOAD_MB`         | `10`         | Per file                           |
 | `CLOUDINARY_CLOUD_NAME` | empty        | Set all three to enable Cloudinary |
 | `CLOUDINARY_API_KEY`    | empty        |                                    |
 | `CLOUDINARY_API_SECRET` | empty        |                                    |

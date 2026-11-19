@@ -31,7 +31,7 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),
 
   UPLOAD_DIR: z.string().default('uploads'),
-  MAX_UPLOAD_MB: z.coerce.number().positive().default(15),
+  MAX_UPLOAD_MB: z.coerce.number().positive().default(10),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),

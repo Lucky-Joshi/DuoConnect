@@ -2,7 +2,7 @@ export const APP_NAME = 'DuoConnect';
 
 export const MESSAGE_PAGE_SIZE = 40;
 export const MAX_MESSAGE_LENGTH = 4000;
-export const MAX_FILE_MB = 15;
+export const MAX_FILE_MB = 10;
 export const MAX_AVATAR_MB = 5;
 
 export const DEFAULT_ICE_SERVERS = [

@@ -216,7 +216,7 @@ Types: `text | image | file | voice`. Attachments must first be uploaded and are
 
 Uploads return a staged attachment `{ id, url, name, mimeType, sizeBytes, provider }`. Avatars return `{ url, publicId, provider }`; save it with `PATCH /api/users/me` (`avatarUrl`).
 
-Limits: 15 MB default (`MAX_UPLOAD_MB`), 5 MB avatars, 10 attachments per message. Local disk by default; Cloudinary when configured.
+Limits: 10 MB default (`MAX_UPLOAD_MB`), 5 MB avatars, 10 attachments per message. Local disk by default; Cloudinary when configured.
 
 ## Notifications
 
