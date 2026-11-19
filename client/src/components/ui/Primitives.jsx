@@ -88,7 +88,7 @@ export function Avatar({
     >
       {image ? <img src={image} alt="" loading="lazy" /> : <span>{initials(name)}</span>}
       {showStatus ? (
-        <i
+        <span
           className={cn(
             styles.status,
             online && styles.statusOnline,
@@ -96,6 +96,7 @@ export function Avatar({
             !online && !away && styles.statusOffline,
           )}
           style={{ width: Math.max(9, Math.round(pixels * 0.26)) }}
+          role="img"
           aria-label={online ? 'Online' : away ? 'Away' : 'Offline'}
         />
       ) : null}
