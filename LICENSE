@@ -1,21 +1,59 @@
-MIT License
+COMMERCIAL LICENSE AGREEMENT
 
-Copyright (c) 2026 DuoConnect
+Copyright (c) 2026 DuoConnect. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This Commercial License Agreement (the "Agreement") governs the use of
+DuoConnect, including its source code, documentation, and related assets
+(collectively, the "Software"). The copyright holder is referred to as the
+"Licensor" and the party using the Software as the "Licensee".
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. NO GRANT; COMMERCIAL LICENSE REQUIRED
+
+No rights to the Software are granted by this file. The Software may be used
+only under a separate written commercial license agreement with the Licensor
+and upon payment of the applicable fees. Until such an agreement is signed,
+you may not use, copy, modify, distribute, sublicense, sell, host, or create
+derivative works of the Software, in whole or in part.
+
+2. RESTRICTIONS
+
+Without a written license from the Licensor, you may not, and may not permit
+any third party to:
+
+  - use the Software for any commercial purpose;
+  - host, operate, or expose the Software as a service for others;
+  - copy, reproduce, modify, translate, or create derivative works of it;
+  - distribute, sell, rent, lease, sublicense, or otherwise transfer it;
+  - remove or alter any copyright, trademark, or license notices;
+  - reverse engineer, decompile, or disassemble the Software.
+
+3. OWNERSHIP
+
+The Software is licensed, not sold. All rights, title, and interest in and to
+the Software, including all intellectual property rights, remain with the
+Licensor. No rights are granted by implication, estoppel, or otherwise.
+
+4. TERM AND TERMINATION
+
+Any license granted under a separate written agreement continues for the term
+stated in that agreement. The Licensor may terminate a license for breach of
+its terms. Upon termination, the Licensee must stop using the Software and
+destroy all copies in its possession or control.
+
+5. NO WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE LICENSOR DOES NOT
+WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE OR UNINTERRUPTED.
+
+6. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OTHER DEALINGS IN THE
 SOFTWARE.
+
+7. LICENSING INQUIRIES
+
+For commercial licensing, contact: [add licensing email here].

@@ -2,6 +2,7 @@
   "name": "duoconnect",
   "version": "1.0.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "description": "A real-time communication platform for two people — chat, presence, and WebRTC calls.",
   "workspaces": [
     "client",

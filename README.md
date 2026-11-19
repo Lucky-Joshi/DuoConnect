@@ -158,4 +158,5 @@ Reliable calls across restrictive networks need a TURN server. Set `VITE_ICE_SER
 
 ## License
 
-[MIT](LICENSE)
+Proprietary — see [LICENSE](LICENSE). Commercial use requires a written license
+from the copyright holder.
