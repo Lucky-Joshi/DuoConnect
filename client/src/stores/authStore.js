@@ -1,29 +1,11 @@
 import { create } from 'zustand';
 import { api, setAccessToken, unwrap } from '../lib/api';
+import { setAuthHint } from '../lib/authHint';
 import { connectSocket, disconnectSocket, getSocket } from '../lib/socket';
 
 const refreshConfig = { skipAuthRefresh: true, timeout: 20_000 };
-const AUTH_HINT_KEY = 'duo:auth-hint';
 
 let bootstrapPromise = null;
-
-/** Lets the landing route avoid flashing for a returning signed-in user. */
-export function hasAuthHint() {
-  try {
-    return localStorage.getItem(AUTH_HINT_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function setAuthHint(active) {
-  try {
-    if (active) localStorage.setItem(AUTH_HINT_KEY, '1');
-    else localStorage.removeItem(AUTH_HINT_KEY);
-  } catch {
-    // Storage can be unavailable in private browsing; the cookie remains authoritative.
-  }
-}
 
 function clearSession(set) {
   setAccessToken(null);

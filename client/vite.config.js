@@ -16,15 +16,6 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     chunkSizeWarningLimit: 900,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          motion: ['framer-motion'],
-          media: ['react-virtuoso', 'emoji-picker-react'],
-        },
-      },
-    },
   },
   test: {
     environment: 'jsdom',

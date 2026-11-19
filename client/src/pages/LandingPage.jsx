@@ -13,7 +13,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { Avatar, Button, Logo } from '../components/ui/Primitives';
-import { useAuthStore } from '../stores/authStore';
 import { cn } from '../lib/utils';
 import styles from './LandingPage.module.css';
 
@@ -77,12 +76,9 @@ const MESSAGES = [
   },
 ];
 
-export default function LandingPage() {
+export default function LandingPage({ authenticated = false }) {
   const navigate = useNavigate();
-  const status = useAuthStore((state) => state.status);
   const scroller = useRef(null);
-
-  const authenticated = status === 'authenticated';
 
   return (
     <div className={styles.landing} ref={scroller}>
