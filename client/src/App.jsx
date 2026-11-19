@@ -1,22 +1,23 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAppearance } from './hooks/useAppearance';
 import { api } from './lib/api';
 import { syncPushSubscription } from './lib/push';
-import { useAuthStore } from './stores/authStore';
+import { hasAuthHint, useAuthStore } from './stores/authStore';
 import { useCallStore } from './stores/callStore';
 import { Splash } from './components/layout/Splash';
 import { Toaster } from './components/ui/Toaster';
-import AppLayout from './components/layout/AppLayout';
 import LandingPage from './pages/LandingPage';
-import AuthPage from './pages/AuthPage';
-import ChatsPage from './pages/ChatsPage';
-import FriendsPage from './pages/FriendsPage';
-import ProfilePage from './pages/ProfilePage';
-import CallsPage from './pages/CallsPage';
-import NotificationsPage from './pages/NotificationsPage';
-import SettingsPage from './pages/SettingsPage';
-import NotFoundPage from './pages/NotFoundPage';
+
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const AppLayout = lazy(() => import('./components/layout/AppLayout'));
+const ChatsPage = lazy(() => import('./pages/ChatsPage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const CallsPage = lazy(() => import('./pages/CallsPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function RequireAuth({ children }) {
   const status = useAuthStore((state) => state.status);
@@ -31,7 +32,9 @@ function RequireAuth({ children }) {
 
 function HomeRoute() {
   const status = useAuthStore((state) => state.status);
-  return status === 'authenticated' ? <Navigate to="/app" replace /> : <LandingPage />;
+  if (status === 'authenticated') return <Navigate to="/app" replace />;
+  if (status === 'loading' && hasAuthHint()) return <Splash />;
+  return <LandingPage />;
 }
 
 export default function App() {
@@ -63,32 +66,32 @@ export default function App() {
     };
   }, [status, userId]);
 
-  if (status === 'loading') return <Splash />;
-
   return (
     <>
-      <Routes>
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/login" element={<AuthPage mode="login" />} />
-        <Route path="/register" element={<AuthPage mode="register" />} />
-        <Route
-          path="/app"
-          element={
-            <RequireAuth>
-              <AppLayout />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<ChatsPage />} />
-          <Route path="c/:chatId" element={<ChatsPage />} />
-          <Route path="friends" element={<FriendsPage />} />
-          <Route path="u/:username" element={<ProfilePage />} />
-          <Route path="calls" element={<CallsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <Suspense fallback={<Splash />}>
+        <Routes>
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route
+            path="/app"
+            element={
+              <RequireAuth>
+                <AppLayout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<ChatsPage />} />
+            <Route path="c/:chatId" element={<ChatsPage />} />
+            <Route path="friends" element={<FriendsPage />} />
+            <Route path="u/:username" element={<ProfilePage />} />
+            <Route path="calls" element={<CallsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
       <Toaster />
     </>
   );

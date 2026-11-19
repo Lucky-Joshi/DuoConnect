@@ -3,11 +3,38 @@ import { api, setAccessToken, unwrap } from '../lib/api';
 import { connectSocket, disconnectSocket, getSocket } from '../lib/socket';
 
 const refreshConfig = { skipAuthRefresh: true, timeout: 20_000 };
+const AUTH_HINT_KEY = 'duo:auth-hint';
 
 let bootstrapPromise = null;
 
+/** Lets the landing route avoid flashing for a returning signed-in user. */
+export function hasAuthHint() {
+  try {
+    return localStorage.getItem(AUTH_HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setAuthHint(active) {
+  try {
+    if (active) localStorage.setItem(AUTH_HINT_KEY, '1');
+    else localStorage.removeItem(AUTH_HINT_KEY);
+  } catch {
+    // Storage can be unavailable in private browsing; the cookie remains authoritative.
+  }
+}
+
+function clearSession(set) {
+  setAccessToken(null);
+  setAuthHint(false);
+  disconnectSocket();
+  set({ status: 'anonymous', user: null, settings: null });
+}
+
 function applySession(set, session) {
   setAccessToken(session.accessToken);
+  setAuthHint(true);
   if (getSocket()) connectSocket(session.accessToken);
   set({
     status: 'authenticated',
@@ -29,12 +56,10 @@ export const useAuthStore = create((set, get) => ({
         if (session) {
           applySession(set, session);
         } else {
-          setAccessToken(null);
-          set({ status: 'anonymous', user: null, settings: null });
+          clearSession(set);
         }
       } catch {
-        setAccessToken(null);
-        set({ status: 'anonymous', user: null, settings: null });
+        clearSession(set);
       }
     })();
     return bootstrapPromise;
@@ -46,9 +71,7 @@ export const useAuthStore = create((set, get) => ({
 
   expire: () => {
     if (get().status === 'anonymous') return;
-    setAccessToken(null);
-    disconnectSocket();
-    set({ status: 'anonymous', user: null, settings: null });
+    clearSession(set);
   },
 
   login: async (input) => {
@@ -69,9 +92,7 @@ export const useAuthStore = create((set, get) => ({
     } catch {
       // The local session should end even if the server is unreachable.
     }
-    setAccessToken(null);
-    disconnectSocket();
-    set({ status: 'anonymous', user: null, settings: null });
+    clearSession(set);
   },
 
   refreshMe: async () => {
