@@ -4,3 +4,5 @@ Disallow: /app
 Disallow: /api
 Disallow: /uploads
 Disallow: /static
+
+Sitemap: https://duo-connect-zeta.vercel.app/sitemap.xml
