@@ -41,7 +41,13 @@ export class CallPeer {
     this.onRemoteStream = onRemoteStream;
     this.onStats = onStats;
 
-    this.pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle' });
+    this.pc = new RTCPeerConnection({
+      iceServers: ICE_SERVERS,
+      bundlePolicy: 'max-bundle',
+      // Gather a couple of candidates up front so the caller already has a
+      // viable path ready when the other person answers.
+      iceCandidatePoolSize: 2,
+    });
     this.makingOffer = false;
     this.ignoreOffer = false;
     this.isSettingRemoteAnswerPending = false;

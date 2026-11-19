@@ -79,8 +79,10 @@ export default function registerCallHandlers(socket) {
     const input = signalSchema.parse(payload);
 
     const call = await callsService.assertActiveParticipant(input.callId, userId);
-    if (call.status !== 'ongoing') {
-      throw badRequest('Wait for the call to connect before sharing media.');
+    // Ringing is allowed so the caller can send its offer and ICE candidates
+    // while waiting for an answer; the callee queues them until it accepts.
+    if (!['ringing', 'ongoing'].includes(call.status)) {
+      throw badRequest('This call has ended.');
     }
     if (input.data !== undefined) {
       const size = Buffer.byteLength(JSON.stringify(input.data));

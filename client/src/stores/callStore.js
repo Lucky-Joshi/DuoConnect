@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import toast from 'react-hot-toast';
+import { createNoiseGate } from '../lib/audio';
 import { emitWithAck } from '../lib/socket';
 import { CallPeer, mediaErrorMessage, stopStream } from '../lib/webrtc';
 import { startRingtone, vibrate } from '../lib/utils';
@@ -29,6 +30,8 @@ let audioTrack = null;
 let cameraTrack = null;
 let screenTrack = null;
 let localStream = null;
+let rawStream = null;
+let noiseGate = null;
 let ringStop = null;
 let pendingSignals = [];
 let resetTimer = null;
@@ -61,12 +64,16 @@ function rebuildLocalStream(setState) {
 }
 
 function cleanupMedia() {
+  noiseGate?.cleanup();
+  noiseGate = null;
   stopStream(localStream);
+  stopStream(rawStream);
   if (screenTrack) stopStream(new MediaStream([screenTrack]));
   screenTrack = null;
   cameraTrack = null;
   audioTrack = null;
   localStream = null;
+  rawStream = null;
 }
 
 function cleanupCall() {
@@ -84,11 +91,12 @@ async function acquireMedia(kind, facingMode) {
     throw new Error('This browser does not support camera or microphone access.');
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
+  rawStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: true,
+      autoGainControl: false,
+      channelCount: { ideal: 1 },
     },
     video:
       kind === 'video'
@@ -100,10 +108,11 @@ async function acquireMedia(kind, facingMode) {
         : false,
   });
 
-  audioTrack = stream.getAudioTracks()[0] ?? null;
-  cameraTrack = stream.getVideoTracks()[0] ?? null;
-  localStream = stream;
-  return stream;
+  noiseGate = createNoiseGate(rawStream);
+  audioTrack = noiseGate?.track ?? rawStream.getAudioTracks()[0] ?? null;
+  cameraTrack = rawStream.getVideoTracks()[0] ?? null;
+  localStream = new MediaStream([audioTrack, cameraTrack].filter(Boolean));
+  return localStream;
 }
 
 async function relaySignal(type, data) {
@@ -156,6 +165,9 @@ export const useCallStore = create((set, get) => ({
         peerUser: peerOf(call, me?.id),
         startedAt: null,
       });
+      // Start negotiation while the call is ringing so ICE gathering overlaps
+      // the wait for the other person to answer instead of starting afterwards.
+      get().createPeer(call);
       ringStop = startRingtone('outgoing');
       vibrate(60);
       return call;
