@@ -561,6 +561,14 @@
 }
 
 /* Sections --------------------------------------------------------------- */
+.features,
+.split,
+.finalCta,
+.footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
 .features {
   position: relative;
   z-index: 1;
@@ -943,6 +951,29 @@
 @media (max-width: 720px) {
   .nav {
     padding: 12px 18px;
+  }
+
+  .aurora,
+  .showcaseGlow {
+    display: none;
+  }
+
+  .nav,
+  .chatCard,
+  .callCard,
+  .presenceCard,
+  .feature,
+  .finalCtaCard {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .chatCard,
+  .callCard,
+  .typing i,
+  .callPulse,
+  .pulse {
+    animation: none;
   }
 
   .hero,
