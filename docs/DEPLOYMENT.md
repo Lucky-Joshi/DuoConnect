@@ -112,6 +112,8 @@ CLOUDINARY_API_SECRET=...
 
 The storage layer switches automatically and records `provider` per attachment. Mount `UPLOAD_DIR` on a persistent volume if you keep local storage.
 
+On **Free** Cloudinary plans, PDF and archive (ZIP/RAR/etc.) **delivery** is blocked by default, so shared PDFs fail to open with `401 deny or ACL failure` even though the upload succeeds. Enable **Allow delivery of PDF and ZIP files** under Cloudinary Console → Settings → Security (https://console.cloudinary.com/app/settings/security) and save. This applies to existing PDFs too; a URL whose error was cached by the CDN may need a few minutes or a CDN invalidation before it starts working.
+
 ## WebRTC / TURN
 
 STUN is enough for local and many home networks. Production needs TURN for restrictive NATs and corporate firewalls.
