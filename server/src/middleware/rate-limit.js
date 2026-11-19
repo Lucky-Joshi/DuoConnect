@@ -44,3 +44,9 @@ export const messageLimiter = createLimiter({
   limit: 120,
   message: 'You are sending messages too quickly.',
 });
+
+export const linkLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  limit: 60,
+  message: 'Too many link previews. Please slow down.',
+});

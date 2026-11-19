@@ -17,16 +17,16 @@ DuoConnect is built as a portfolio-grade full-stack project: a React 19 single-p
 
 ## Screens
 
-| Area          | Highlights                                                                                                                                                            |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Landing       | Animated split hero: a fixed call window beside a scrolling conversation, feature story, direct sign-up                                                               |
-| Auth          | Split story panel, glass form, remembered sessions, inline validation                                                                                                 |
-| Chats         | Three-column shell, virtualized-ready thread, typing indicators, pins, replies, edits, deletions, attachments, voice notes, stickers, infinite scroll, in-chat search |
-| People        | Global user search, connection cards, incoming/outgoing requests, blocked list, confirmation flows                                                                    |
-| Profile       | Presence, shared context, message/call actions, connect/remove/block flows                                                                                            |
-| Calls         | Perspective-aware history, filters, duration summaries, one-click callback                                                                                            |
-| Notifications | Grouped activity, click-through routing, unread filtering, bulk actions, Web Push for messages and calls when the tab is closed                                       |
-| Settings      | Profile and avatar, appearance, notification preferences, privacy, password, sessions, account deletion                                                               |
+| Area          | Highlights                                                                                                                                                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Landing       | Animated split hero: a fixed call window beside a scrolling conversation, feature story, direct sign-up                                                                                                                    |
+| Auth          | Split story panel, glass form, remembered sessions, inline validation                                                                                                                                                      |
+| Chats         | Three-column shell, virtualized-ready thread, typing indicators, pins, replies, edits, deletions, attachments, voice notes, stickers, GIFs, emoji reactions, link previews, safe markdown, infinite scroll, in-chat search |
+| People        | Global user search, connection cards, incoming/outgoing requests, blocked list, confirmation flows                                                                                                                         |
+| Profile       | Presence, shared context, message/call actions, connect/remove/block flows                                                                                                                                                 |
+| Calls         | Perspective-aware history, filters, duration summaries, one-click callback                                                                                                                                                 |
+| Notifications | Grouped activity, click-through routing, unread filtering, bulk actions, Web Push for messages and calls when the tab is closed                                                                                            |
+| Settings      | Profile and avatar, appearance, notification preferences, privacy, password, sessions, account deletion                                                                                                                    |
 
 ### A look inside
 

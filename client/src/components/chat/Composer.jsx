@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {
   ArrowUp,
+  Bold,
+  Code,
+  Film,
   ImagePlus,
+  Italic,
   Mic,
   Paperclip,
   Pencil,
   Smile,
   Square,
   Sticker,
+  Strikethrough,
   Trash2,
   X,
 } from 'lucide-react';
@@ -19,6 +24,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { api, unwrap } from '../../lib/api';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { MAX_FILE_MB, MAX_MESSAGE_LENGTH } from '../../lib/constants';
+import { GIFS } from '../../lib/gifs';
 import { STICKERS } from '../../lib/stickers';
 import {
   cn,
@@ -87,6 +93,8 @@ export function Composer({
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [formatOpen, setFormatOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -97,6 +105,8 @@ export function Composer({
   const emojiRef = useClickOutside(() => setEmojiOpen(false), emojiOpen);
   const attachRef = useClickOutside(() => setAttachOpen(false), attachOpen);
   const stickerRef = useClickOutside(() => setStickerOpen(false), stickerOpen);
+  const gifRef = useClickOutside(() => setGifOpen(false), gifOpen);
+  const formatRef = useClickOutside(() => setFormatOpen(false), formatOpen);
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -157,6 +167,22 @@ export function Composer({
       input?.focus();
       const position = start + emoji.length;
       input?.setSelectionRange(position, position);
+    });
+  };
+
+  const insertMarkdown = (before, after = before, placeholder = 'text') => {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? value.length;
+    const end = input?.selectionEnd ?? value.length;
+    const selected = value.slice(start, end) || placeholder;
+    const next = `${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`;
+    setDraft(chatId, next);
+    if (next.trim()) notifyTyping(chatId);
+    setFormatOpen(false);
+    requestAnimationFrame(() => {
+      input?.focus();
+      const selectionStart = start + before.length;
+      input?.setSelectionRange(selectionStart, selectionStart + selected.length);
     });
   };
 
@@ -222,6 +248,28 @@ export function Composer({
       inputRef.current?.focus();
     } catch (error) {
       toast.error(getErrorMessage(error, 'That sticker could not be sent.'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendGif = async (gif) => {
+    if (disabled || editing || sending || uploading) return;
+    setGifOpen(false);
+    setSending(true);
+    try {
+      await sendMessage(chatId, {
+        body: gif.id,
+        type: 'gif',
+        replyToId: replyTo?.id ?? null,
+        replyTo: replyTo ?? null,
+      });
+      onCancelReply?.();
+      stopTyping(chatId);
+      onSent?.();
+      inputRef.current?.focus();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'That GIF could not be sent.'));
     } finally {
       setSending(false);
     }
@@ -467,6 +515,8 @@ export function Composer({
                   setAttachOpen((open) => !open);
                   setEmojiOpen(false);
                   setStickerOpen(false);
+                  setGifOpen(false);
+                  setFormatOpen(false);
                 }}
                 aria-label="Add an attachment"
                 aria-expanded={attachOpen}
@@ -506,14 +556,71 @@ export function Composer({
               ) : null}
             </div>
 
-            <button
-              type="button"
-              className={cn(styles.tool, styles.writeTool)}
-              onClick={() => inputRef.current?.focus()}
-              aria-label="Write a message"
-            >
-              <span className={styles.writeGlyph}>Aa</span>
-            </button>
+            <div className={styles.popoverWrap} ref={formatRef}>
+              <button
+                type="button"
+                className={cn(styles.tool, formatOpen && styles.toolActive)}
+                onClick={() => {
+                  setFormatOpen((open) => !open);
+                  setAttachOpen(false);
+                  setStickerOpen(false);
+                  setGifOpen(false);
+                  setEmojiOpen(false);
+                }}
+                aria-label="Format text"
+                aria-expanded={formatOpen}
+              >
+                <span className={styles.writeGlyph}>Aa</span>
+              </button>
+              {formatOpen ? (
+                <div className={styles.formatMenu} role="menu" aria-label="Text formatting">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    title="Bold"
+                    aria-label="Bold"
+                    onClick={() => insertMarkdown('**', '**', 'bold text')}
+                  >
+                    <Bold size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    title="Italic"
+                    aria-label="Italic"
+                    onClick={() => insertMarkdown('*', '*', 'italic text')}
+                  >
+                    <Italic size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    title="Strikethrough"
+                    aria-label="Strikethrough"
+                    onClick={() => insertMarkdown('~~', '~~', 'struck text')}
+                  >
+                    <Strikethrough size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    title="Inline code"
+                    aria-label="Inline code"
+                    onClick={() => insertMarkdown('`', '`', 'code')}
+                  >
+                    <Code size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.formatWide}
+                    onClick={() => insertMarkdown('```\n', '\n```', 'code block')}
+                  >
+                    <Code size={15} /> Code block
+                  </button>
+                </div>
+              ) : null}
+            </div>
 
             <div className={styles.popoverWrap} ref={stickerRef}>
               <button
@@ -523,6 +630,8 @@ export function Composer({
                   setStickerOpen((open) => !open);
                   setAttachOpen(false);
                   setEmojiOpen(false);
+                  setGifOpen(false);
+                  setFormatOpen(false);
                 }}
                 aria-label="Choose a sticker"
                 aria-expanded={stickerOpen}
@@ -554,6 +663,48 @@ export function Composer({
                         >
                           {sticker.emoji}
                         </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.popoverWrap} ref={gifRef}>
+              <button
+                type="button"
+                className={cn(styles.tool, gifOpen && styles.toolActive)}
+                onClick={() => {
+                  setGifOpen((open) => !open);
+                  setAttachOpen(false);
+                  setStickerOpen(false);
+                  setEmojiOpen(false);
+                  setFormatOpen(false);
+                }}
+                aria-label="Choose a GIF"
+                aria-expanded={gifOpen}
+                disabled={editing || sending || uploading || voiceBusy || disabled}
+              >
+                <Film size={18} />
+              </button>
+              {gifOpen ? (
+                <div className={styles.stickerPicker} role="dialog" aria-label="GIFs">
+                  <div className={styles.stickerHeader}>
+                    <strong>GIFs</strong>
+                    <span>Built-in reactions, no search needed</span>
+                  </div>
+                  <div className={styles.gifGrid}>
+                    {GIFS.map((gif) => (
+                      <button
+                        key={gif.id}
+                        type="button"
+                        className={styles.gifOption}
+                        title={gif.title}
+                        aria-label={`Send ${gif.title} GIF`}
+                        onClick={() => sendGif(gif)}
+                        disabled={sending || disabled}
+                      >
+                        <img src={gif.src} alt="" loading="lazy" />
                       </button>
                     ))}
                   </div>
@@ -593,6 +744,8 @@ export function Composer({
                   setEmojiOpen((open) => !open);
                   setAttachOpen(false);
                   setStickerOpen(false);
+                  setGifOpen(false);
+                  setFormatOpen(false);
                 }}
                 aria-label="Choose an emoji"
                 aria-expanded={emojiOpen}

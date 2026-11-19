@@ -77,7 +77,10 @@ export function mapAttachment(row) {
   };
 }
 
-export function mapMessage(row, { attachments = [], receipts = [], pinned = false } = {}) {
+export function mapMessage(
+  row,
+  { attachments = [], receipts = [], reactions = [], pinned = false } = {},
+) {
   const replyTo = row.reply_id
     ? {
         id: row.reply_id,
@@ -115,6 +118,7 @@ export function mapMessage(row, { attachments = [], receipts = [], pinned = fals
       deliveredAt: receipt.delivered_at,
       readAt: receipt.read_at,
     })),
+    reactions,
     editedAt: row.edited_at,
     deletedAt: row.deleted_at,
     createdAt: row.created_at,

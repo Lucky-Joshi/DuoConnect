@@ -9,6 +9,7 @@ import {
   CornerUpRight,
   Download,
   FileText,
+  Link2,
   MoreVertical,
   Pause,
   Pencil,
@@ -17,6 +18,7 @@ import {
   Play,
   Reply,
   RotateCcw,
+  SmilePlus,
   Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -31,24 +33,147 @@ import {
   isImageAttachment,
   mediaUrl,
   messagePreview,
-  splitLinks,
 } from '../../lib/utils';
+import { getGif } from '../../lib/gifs';
+import { firstLinkIn, getLinkPreview } from '../../lib/linkPreview';
+import { RichText } from '../../lib/richText';
 import { getSticker } from '../../lib/stickers';
 import styles from './MessageBubble.module.css';
 
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '😮', '😢'];
+
 function TextBody({ text }) {
   return (
-    <p className={styles.text}>
-      {splitLinks(text ?? '').map((part, index) =>
-        /^https?:\/\//.test(part) ? (
-          <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
-            {part}
-          </a>
-        ) : (
-          <span key={`${part}-${index}`}>{part}</span>
-        ),
+    <div className={styles.text}>
+      <RichText text={text ?? ''} />
+    </div>
+  );
+}
+
+function Gif({ message }) {
+  const gif = getGif(message.body);
+  return (
+    <div className={styles.gifWrap}>
+      <img
+        className={styles.gif}
+        src={gif.src}
+        alt={gif.unknown ? 'GIF' : `${gif.title} GIF`}
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function LinkCard({ message }) {
+  const url = useMemo(() => firstLinkIn(message.body), [message.body]);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(Boolean(url));
+
+  useEffect(() => {
+    if (!url) {
+      setPreview(null);
+      setLoading(false);
+      return undefined;
+    }
+    let active = true;
+    setLoading(true);
+    getLinkPreview(url).then((result) => {
+      if (!active) return;
+      setPreview(result);
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (!url) return null;
+
+  let hostname = url;
+  try {
+    hostname = new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    // The raw URL remains a readable fallback.
+  }
+
+  return (
+    <a className={styles.linkCard} href={url} target="_blank" rel="noreferrer noopener">
+      {preview?.image ? (
+        <img className={styles.linkImage} src={preview.image} alt="" loading="lazy" />
+      ) : (
+        <span className={styles.linkIcon}>
+          <Link2 size={16} />
+        </span>
       )}
-    </p>
+      <span className={styles.linkBody}>
+        <strong>{preview?.title ?? hostname}</strong>
+        <span>{preview?.description ?? (loading ? 'Loading preview…' : url)}</span>
+        <small>{preview?.siteName ?? hostname}</small>
+      </span>
+    </a>
+  );
+}
+
+function ReactionBar({ message, currentUserId, onReact }) {
+  const reactions = message.reactions ?? [];
+  if (!reactions.length) return null;
+
+  return (
+    <div className={styles.reactions}>
+      {reactions.map((reaction) => {
+        const mine = Boolean(currentUserId && reaction.userIds?.includes(currentUserId));
+        return (
+          <button
+            key={reaction.emoji}
+            type="button"
+            className={cn(styles.reactionChip, mine && styles.reactionMine)}
+            onClick={() => onReact?.(message, reaction.emoji)}
+            aria-pressed={mine}
+            aria-label={`${reaction.emoji} ${reaction.count}${mine ? ', including you' : ''}`}
+          >
+            <span>{reaction.emoji}</span>
+            <span className={styles.reactionCount}>{reaction.count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReactionPicker({ onReact }) {
+  const [open, setOpen] = useState(false);
+  const ref = useClickOutside(() => setOpen(false), open);
+
+  return (
+    <div className={styles.reactionWrap} ref={ref}>
+      <button
+        type="button"
+        className={cn(styles.reactionToggle, open && styles.reactionToggleActive)}
+        onClick={() => setOpen((value) => !value)}
+        aria-label="Add a reaction"
+        aria-expanded={open}
+      >
+        <SmilePlus size={13} />
+      </button>
+      {open ? (
+        <div className={styles.reactionMenu} role="menu" aria-label="Quick reactions">
+          {QUICK_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onReact(emoji);
+              }}
+              aria-label={`React with ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -249,6 +374,8 @@ export function MessageBubble({
   isLastInGroup = true,
   canMessage = true,
   highlighted = false,
+  currentUserId = null,
+  onReact,
   onReply,
   onEdit,
   onDelete,
@@ -272,6 +399,7 @@ export function MessageBubble({
   const voice = (message.attachments ?? []).find((attachment) =>
     /^audio\//.test(attachment.mimeType || ''),
   );
+  const canReact = canMessage && !pending && !failed && !deleted && Boolean(onReact);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -323,6 +451,7 @@ export function MessageBubble({
             !isLastInGroup && styles.bubbleGrouped,
             deleted && styles.bubbleDeleted,
             message.type === 'sticker' && styles.bubbleSticker,
+            message.type === 'gif' && styles.bubbleGif,
             pending && styles.bubblePending,
             failed && styles.bubbleFailed,
           )}
@@ -359,19 +488,35 @@ export function MessageBubble({
 
               {message.type === 'sticker' ? <Sticker message={message} /> : null}
 
-              {message.type !== 'sticker' && message.body ? <TextBody text={message.body} /> : null}
+              {message.type === 'gif' ? <Gif message={message} /> : null}
+
+              {message.type !== 'sticker' && message.type !== 'gif' && message.body ? (
+                <TextBody text={message.body} />
+              ) : null}
+
+              {message.type === 'text' ? <LinkCard message={message} /> : null}
 
               {!images.length &&
               !files.length &&
               !voice &&
               message.type !== 'sticker' &&
+              message.type !== 'gif' &&
               !message.body ? (
                 <p className={styles.emptyBody}>Empty message</p>
+              ) : null}
+
+              {canReact ? (
+                <ReactionBar
+                  message={message}
+                  currentUserId={currentUserId}
+                  onReact={(target, emoji) => onReact(target, emoji)}
+                />
               ) : null}
             </>
           )}
 
           <span className={cn(styles.footer, own ? styles.footerOwn : styles.footerReceived)}>
+            {canReact ? <ReactionPicker onReact={(emoji) => onReact(message, emoji)} /> : null}
             {message.isPinned && !deleted ? (
               <Pin size={10} className={styles.pinnedIcon} aria-label="Pinned message" />
             ) : null}
@@ -402,7 +547,10 @@ export function MessageBubble({
                   className={cn(styles.menu, own ? styles.menuOwn : styles.menuReceived)}
                   role="menu"
                 >
-                  {message.body && message.type !== 'sticker' && !deleted ? (
+                  {message.body &&
+                  message.type !== 'sticker' &&
+                  message.type !== 'gif' &&
+                  !deleted ? (
                     <button type="button" role="menuitem" onClick={() => run(copy)}>
                       <Copy size={14} /> Copy text
                     </button>

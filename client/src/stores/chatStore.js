@@ -4,7 +4,7 @@ import { api, unwrap } from '../lib/api';
 import { emitEvent, emitWithAck, getSocket } from '../lib/socket';
 import { MESSAGE_PAGE_SIZE, TYPING_IDLE_MS, TYPING_REFRESH_MS } from '../lib/constants';
 import { dequeue, enqueue, listQueued } from '../lib/outbox';
-import { messagePreview } from '../lib/utils';
+import { getErrorMessage, messagePreview } from '../lib/utils';
 import { useAuthStore } from './authStore';
 
 const typingTimers = new Map();
@@ -132,6 +132,27 @@ async function deliver(payload) {
     }
   }
   return unwrap(await api.post(`/chats/${payload.chatId}/messages`, payload));
+}
+
+function patchMessageEverywhere(state, messageId, patch) {
+  const threads = {};
+  for (const [chatId, thread] of Object.entries(state.threads)) {
+    threads[chatId] = thread.items.some((item) => item.id === messageId)
+      ? {
+          ...thread,
+          items: thread.items.map((item) => (item.id === messageId ? { ...item, ...patch } : item)),
+        }
+      : thread;
+  }
+
+  const pins = {};
+  for (const [chatId, items] of Object.entries(state.pins)) {
+    pins[chatId] = items.some((item) => item.id === messageId)
+      ? items.map((item) => (item.id === messageId ? { ...item, ...patch } : item))
+      : items;
+  }
+
+  return { threads, pins };
 }
 
 function receiptFor(message, userId) {
@@ -529,6 +550,20 @@ export const useChatStore = create((set, get) => ({
       },
       chats: bumpChat(state.chats, message),
     })),
+
+  applyReaction: ({ messageId, reactions }) =>
+    set((state) => patchMessageEverywhere(state, messageId, { reactions })),
+
+  toggleReaction: async (messageId, emoji) => {
+    try {
+      const message = unwrap(await api.post(`/api/messages/${messageId}/reactions`, { emoji }));
+      get().applyReaction({ messageId, reactions: message.reactions ?? [] });
+      return message;
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'That reaction could not be saved.'));
+      return null;
+    }
+  },
 
   applyDeleted: (message) =>
     set((state) => ({

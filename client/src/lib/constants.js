@@ -51,7 +51,7 @@ export const PRESENCE_VISIBILITY = [
   { id: 'nobody', label: 'Nobody' },
 ];
 
-export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker'];
+export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'gif'];
 
 export const TYPING_IDLE_MS = 2400;
 export const TYPING_REFRESH_MS = 1800;

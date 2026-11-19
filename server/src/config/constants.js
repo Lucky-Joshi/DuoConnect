@@ -5,7 +5,21 @@ export const TYPING_TTL_MS = 4_000;
 export const ONLINE_STATUSES = new Set(['online', 'away']);
 
 export const CHAT_KINDS = ['direct', 'group'];
-export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'system'];
+export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'gif', 'system'];
+export const GIF_IDS = new Set([
+  'wave',
+  'heart',
+  'laugh',
+  'party',
+  'fire',
+  'thumbsup',
+  'clap',
+  'cat',
+  'coffee',
+  'music',
+  'yes',
+  'wow',
+]);
 export const STICKER_IDS = new Set([
   'wave',
   'smile',

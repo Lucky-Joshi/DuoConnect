@@ -27,6 +27,12 @@ export const unpin = asyncHandler(async (req, res) => {
   res.json({ data: await service.setPinned(req.user.id, messageId, false) });
 });
 
+export const react = asyncHandler(async (req, res) => {
+  const { messageId } = z.object({ messageId: uuidSchema }).parse(req.valid.params);
+  const { emoji } = z.object({ emoji: z.string().min(1).max(16) }).parse(req.valid.body);
+  res.json({ data: await service.toggleReaction(req.user.id, messageId, emoji) });
+});
+
 export const forward = asyncHandler(async (req, res) => {
   const { messageId } = z.object({ messageId: uuidSchema }).parse(req.valid.params);
   const { chatId } = z.object({ chatId: uuidSchema }).parse(req.valid.body);

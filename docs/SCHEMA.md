@@ -6,24 +6,25 @@ All primary keys are UUIDs (`gen_random_uuid()`), timestamps are `timestamptz`, 
 
 ## Entity overview
 
-| Table              | Purpose                                                |
-| ------------------ | ------------------------------------------------------ |
-| `users`            | Accounts and public profile fields                     |
-| `user_settings`    | Theme, notifications, privacy (one row per user)       |
-| `presence`         | Current status, socket count, last activity            |
-| `friendships`      | Accepted friendships as an ordered unique pair         |
-| `friend_requests`  | Pending/answered requests                              |
-| `blocks`           | Directional block list                                 |
-| `chats`            | Direct (or future group) conversations                 |
-| `chat_members`     | Membership, read cursor, pin/mute/archive              |
-| `messages`         | Text/media/system messages with edit/delete tombstones |
-| `attachments`      | Staged files claimed by messages                       |
-| `message_receipts` | Per-recipient delivered/read timestamps                |
-| `pinned_messages`  | Pins per chat                                          |
-| `calls`            | Call history and lifecycle state                       |
-| `notifications`    | Activity feed entries                                  |
-| `refresh_tokens`   | Hashed rotating refresh tokens with family lineage     |
-| `_migrations`      | Applied migration filenames                            |
+| Table               | Purpose                                                |
+| ------------------- | ------------------------------------------------------ |
+| `users`             | Accounts and public profile fields                     |
+| `user_settings`     | Theme, notifications, privacy (one row per user)       |
+| `presence`          | Current status, socket count, last activity            |
+| `friendships`       | Accepted friendships as an ordered unique pair         |
+| `friend_requests`   | Pending/answered requests                              |
+| `blocks`            | Directional block list                                 |
+| `chats`             | Direct (or future group) conversations                 |
+| `chat_members`      | Membership, read cursor, pin/mute/archive              |
+| `messages`          | Text/media/system messages with edit/delete tombstones |
+| `attachments`       | Staged files claimed by messages                       |
+| `message_receipts`  | Per-recipient delivered/read timestamps                |
+| `message_reactions` | Per-message emoji reactions by user                    |
+| `pinned_messages`   | Pins per chat                                          |
+| `calls`             | Call history and lifecycle state                       |
+| `notifications`     | Activity feed entries                                  |
+| `refresh_tokens`    | Hashed rotating refresh tokens with family lineage     |
+| `_migrations`       | Applied migration filenames                            |
 
 ## users
 
@@ -85,8 +86,8 @@ Composite PK `(chat_id, user_id)`; role, `joined_at`, `last_read_seq`, `is_pinne
 | ---------------------------------- | ---------------------------------------------------------------- |
 | `seq`                              | Generated identity, unique; used for pagination and read cursors |
 | `chat_id`, `sender_id`             | Required                                                         |
-| `type`                             | `text \| image \| file \| voice \| sticker \| system`            |
-| `body`                             | Nullable for media; curated sticker id for stickers              |
+| `type`                             | `text \| image \| file \| voice \| sticker \| gif \| system`     |
+| `body`                             | Nullable for media; curated sticker/GIF id for those types       |
 | `reply_to_id`, `forwarded_from_id` | Self-references, `ON DELETE SET NULL`                            |
 | `metadata`                         | jsonb for extras                                                 |
 | `search_vector`                    | Generated `tsvector` from body                                   |
@@ -106,6 +107,10 @@ Indexes: `message_id`; partial index on `uploader_id` where `message_id IS NULL`
 ## message_receipts
 
 Composite PK `(message_id, user_id)`; `delivered_at`, `read_at`. Partial indexes on undelivered and unread rows keep receipt queries cheap. The app treats `read_at` as authoritative for read receipts and respects the recipient's privacy setting when broadcasting.
+
+## message_reactions
+
+Composite PK `(message_id, user_id, emoji)` lets each person add several distinct emoji to one message while toggling a repeated emoji removes it. `created_at` orders the aggregated `userIds` list. Cascade foreign keys clean up reactions when a message or account is removed; a `message_id` index supports hydration for message pages.
 
 ## pinned_messages
 

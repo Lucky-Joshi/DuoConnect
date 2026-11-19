@@ -99,6 +99,7 @@ export function useSocketBridge() {
     });
 
     on('message:updated', (message) => useChatStore.getState().applyUpdated(message));
+    on('message:reaction', (payload) => useChatStore.getState().applyReaction(payload));
     on('message:deleted', (message) => useChatStore.getState().applyDeleted(message));
     on('message:delivered', (payload) => useChatStore.getState().applyDelivered(payload));
     on('message:read', (payload) => useChatStore.getState().applyRead(payload));

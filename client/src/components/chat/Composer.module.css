@@ -614,6 +614,91 @@
   background: linear-gradient(145deg, #fce7f3, #ddd6fe);
 }
 
+/* Text formatting -------------------------------------------------------- */
+.formatMenu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 12px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  animation: pop-in 140ms var(--ease-out);
+  z-index: 20;
+}
+
+.formatMenu button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.formatMenu button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.formatMenu .formatWide {
+  width: auto;
+  padding: 0 9px;
+}
+
+/* GIFs -------------------------------------------------------------------- */
+.gifGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 258px;
+  padding: 2px;
+  overflow-y: auto;
+}
+
+.gifOption {
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: 11px;
+  background: var(--surface-sunken);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.gifOption img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gifOption:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.gifOption:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.gifOption:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Hint ------------------------------------------------------------------- */
 .hint {
   display: flex;

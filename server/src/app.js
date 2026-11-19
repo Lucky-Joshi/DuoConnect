@@ -19,6 +19,7 @@ import userRoutes from './modules/users/users.routes.js';
 import friendRoutes from './modules/friends/friends.routes.js';
 import chatRoutes from './modules/chats/chats.routes.js';
 import messageRoutes from './modules/messages/messages.routes.js';
+import linkRoutes from './modules/links/links.routes.js';
 import uploadRoutes from './modules/uploads/uploads.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import callRoutes from './modules/calls/calls.routes.js';
@@ -124,6 +125,7 @@ export function createApp() {
   app.use('/api/friends', friendRoutes);
   app.use('/api/chats', chatRoutes);
   app.use('/api/messages', messageRoutes);
+  app.use('/api/links', linkRoutes);
   app.use('/api/uploads', uploadRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/calls', callRoutes);

@@ -422,6 +422,50 @@ test('friendship, direct chat, messages, receipts, pins, and search', async () =
   assert.equal(forwardedSticker.body.data.type, 'sticker');
   assert.equal(forwardedSticker.body.data.body, 'heart');
 
+  const gif = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'wave', type: 'gif' });
+  assert.equal(gif.status, 201, JSON.stringify(gif.body));
+  assert.equal(gif.body.data.type, 'gif');
+  assert.equal(gif.body.data.body, 'wave');
+
+  const invalidGif = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'not-a-gif', type: 'gif' });
+  assert.equal(invalidGif.status, 400);
+
+  const forwardedGif = await client
+    .post(`/api/messages/${gif.body.data.id}/forward`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ chatId });
+  assert.equal(forwardedGif.status, 201);
+  assert.equal(forwardedGif.body.data.type, 'gif');
+  assert.equal(forwardedGif.body.data.body, 'wave');
+
+  const reacted = await client
+    .post(`/api/messages/${gif.body.data.id}/reactions`)
+    .set('Authorization', `Bearer ${b.token}`)
+    .send({ emoji: '👍' });
+  assert.equal(reacted.status, 200, JSON.stringify(reacted.body));
+  assert.equal(reacted.body.data.reactions.length, 1);
+  assert.equal(reacted.body.data.reactions[0].count, 1);
+  assert.ok(reacted.body.data.reactions[0].userIds.includes(b.user.id));
+
+  const unreacted = await client
+    .post(`/api/messages/${gif.body.data.id}/reactions`)
+    .set('Authorization', `Bearer ${b.token}`)
+    .send({ emoji: '👍' });
+  assert.equal(unreacted.status, 200);
+  assert.equal(unreacted.body.data.reactions.length, 0);
+
+  const invalidReaction = await client
+    .post(`/api/messages/${gif.body.data.id}/reactions`)
+    .set('Authorization', `Bearer ${b.token}`)
+    .send({ emoji: 'not an emoji' });
+  assert.equal(invalidReaction.status, 400);
+
   const read = await client
     .post(`/api/chats/${chatId}/read`)
     .set('Authorization', `Bearer ${b.token}`)
@@ -452,6 +496,25 @@ test('friendship, direct chat, messages, receipts, pins, and search', async () =
   const tombstone = afterDelete.body.data.items.find((message) => message.id === messageId);
   assert.ok(tombstone.deletedAt);
   assert.equal(tombstone.body, null);
+});
+
+test('link previews require auth and reject unsafe URLs', async () => {
+  const a = await register('lp');
+
+  const anonymous = await client.post('/api/links').send({ url: 'https://example.com/page' });
+  assert.equal(anonymous.status, 401);
+
+  const invalid = await client
+    .post('/api/links')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ url: 'ftp://example.com/file' });
+  assert.equal(invalid.status, 400);
+
+  const privateAddress = await client
+    .post('/api/links')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ url: 'http://127.0.0.1:5432/admin' });
+  assert.equal(privateAddress.status, 400);
 });
 
 test('uploads, attachment claiming, notifications, and calls history', async () => {

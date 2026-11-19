@@ -146,6 +146,46 @@ export async function getPinnedIdsForMessages(messageIds) {
   return new Set(rows.map((row) => row.message_id));
 }
 
+export async function getReactionsForMessages(messageIds) {
+  if (!messageIds.length) return new Map();
+  const { rows } = await query(
+    `SELECT message_id, emoji, COALESCE(array_agg(user_id ORDER BY created_at), '{}'::uuid[]) AS user_ids
+       FROM message_reactions
+      WHERE message_id = ANY($1::uuid[])
+      GROUP BY message_id, emoji
+      ORDER BY message_id, emoji`,
+    [messageIds],
+  );
+  const grouped = new Map();
+  for (const row of rows) {
+    if (!grouped.has(row.message_id)) grouped.set(row.message_id, []);
+    grouped.get(row.message_id).push({
+      emoji: row.emoji,
+      count: row.user_ids.length,
+      userIds: row.user_ids,
+    });
+  }
+  return grouped;
+}
+
+/** Toggle one emoji reaction. Returns true when it was added, false when removed. */
+export async function toggleReaction(messageId, userId, emoji, client = { query }) {
+  const removed = await client.query(
+    `DELETE FROM message_reactions
+      WHERE message_id = $1 AND user_id = $2 AND emoji = $3`,
+    [messageId, userId, emoji],
+  );
+  if (removed.rowCount) return false;
+
+  await client.query(
+    `INSERT INTO message_reactions (message_id, user_id, emoji)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
+    [messageId, userId, emoji],
+  );
+  return true;
+}
+
 export async function updateMessageBody(messageId, body) {
   const { rows } = await query(
     `UPDATE messages SET body = $2, edited_at = now()

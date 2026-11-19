@@ -12,6 +12,7 @@ import {
   presenceLabel,
   splitLinks,
 } from './utils';
+import { getGif, GIFS } from './gifs';
 import { getSticker, STICKERS } from './stickers';
 
 describe('formatting helpers', () => {
@@ -63,6 +64,19 @@ describe('message previews', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(getSticker('heart').label).toBe('Heart');
     expect(getSticker('missing').unknown).toBe(true);
+  });
+
+  it('describes GIFs without exposing raw ids', () => {
+    expect(messagePreview({ type: 'gif', body: 'wave' })).toBe('GIF: Wave');
+    expect(messagePreview({ type: 'gif', body: 'missing' })).toBe('GIF');
+  });
+
+  it('keeps the GIF catalog stable', () => {
+    const ids = GIFS.map((gif) => gif.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(getGif('wave').title).toBe('Wave');
+    expect(getGif('wave').src).toMatch(/gifs\/wave\.gif$/);
+    expect(getGif('missing').unknown).toBe(true);
   });
 
   it('detects attachment media types', () => {

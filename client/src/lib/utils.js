@@ -7,6 +7,7 @@ import {
   isToday,
   isYesterday,
 } from 'date-fns';
+import { getGif } from './gifs';
 import { getSticker } from './stickers';
 
 export const cn = (...args) => clsx(...args);
@@ -106,6 +107,10 @@ export function messagePreview(message) {
   if (message.type === 'sticker') {
     const sticker = getSticker(message.body);
     return sticker.unknown ? 'Sticker' : `Sticker: ${sticker.label}`;
+  }
+  if (message.type === 'gif') {
+    const gif = getGif(message.body);
+    return gif.unknown ? 'GIF' : `GIF: ${gif.title}`;
   }
   return message.body?.slice(0, 160) || '';
 }

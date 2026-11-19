@@ -53,6 +53,7 @@ Pagination uses `cursor`/`limit` for messages and returns:
 | Global API          | 400 requests / minute / IP    |
 | Auth                | 40 requests / 15 minutes / IP |
 | Messages            | 120 / minute / user           |
+| Link previews       | 60 / minute / user            |
 | Uploads             | 120 / hour / user             |
 | Socket messages     | 30 / 10 seconds               |
 | Socket call signals | 120 / 10 seconds              |
@@ -195,18 +196,43 @@ Send body:
 }
 ```
 
-Types: `text | image | file | voice | sticker`. Attachments must first be uploaded and are claimed atomically by the message. Stickers use a curated sticker id as `body` and accept no attachments. `clientId` is echoed back so optimistic UI can reconcile.
+Types: `text | image | file | voice | sticker | gif`. Attachments must first be uploaded and are claimed atomically by the message. Stickers and GIFs use a curated id as `body` and accept no attachments. Markdown formatting is rendered for text bodies. `clientId` is echoed back so optimistic UI can reconcile.
 
 ## Messages
 
-| Method | Path                               | Auth | Description                             |
-| ------ | ---------------------------------- | ---- | --------------------------------------- |
-| GET    | `/api/messages/search?q=`          | Yes  | Global search across the caller's chats |
-| PATCH  | `/api/messages/:messageId`         | Yes  | Edit body; sender only                  |
-| DELETE | `/api/messages/:messageId`         | Yes  | Soft-delete/tombstone; sender only      |
-| POST   | `/api/messages/:messageId/pin`     | Yes  | Pin in its chat                         |
-| DELETE | `/api/messages/:messageId/pin`     | Yes  | Unpin                                   |
-| POST   | `/api/messages/:messageId/forward` | Yes  | `{ chatId }`                            |
+| Method | Path                                 | Auth | Description                             |
+| ------ | ------------------------------------ | ---- | --------------------------------------- |
+| GET    | `/api/messages/search?q=`            | Yes  | Global search across the caller's chats |
+| PATCH  | `/api/messages/:messageId`           | Yes  | Edit body; sender only                  |
+| DELETE | `/api/messages/:messageId`           | Yes  | Soft-delete/tombstone; sender only      |
+| POST   | `/api/messages/:messageId/pin`       | Yes  | Pin in its chat                         |
+| DELETE | `/api/messages/:messageId/pin`       | Yes  | Unpin                                   |
+| POST   | `/api/messages/:messageId/forward`   | Yes  | `{ chatId }`                            |
+| POST   | `/api/messages/:messageId/reactions` | Yes  | `{ emoji }` — toggle one emoji reaction |
+
+A reaction response is the hydrated message with `reactions: [{ emoji, count, userIds }]`. Tapping the same emoji again removes the caller's reaction. Emoji are limited to 16 characters and must contain an extended pictographic character.
+
+## Links
+
+| Method | Path         | Auth | Description                                    |
+| ------ | ------------ | ---- | ---------------------------------------------- |
+| POST   | `/api/links` | Yes  | `{ url }` — fetch public link preview metadata |
+
+Requests accept only `http`/`https` URLs on ports 80/443, without credentials. Private, loopback, link-local, and reserved addresses are blocked before fetch; redirects are revalidated and capped. Responses return `{ data: null }` when metadata is unavailable.
+
+Example response:
+
+```json
+{
+  "data": {
+    "url": "https://example.com/story",
+    "siteName": "example.com",
+    "title": "A story",
+    "description": "A short summary",
+    "image": "https://example.com/cover.png"
+  }
+}
+```
 
 ## Uploads
 
@@ -293,7 +319,7 @@ socket.emit('message:send', payload, (reply) => {
 
 ### Server → client
 
-`session:ready`, `session:error`, `presence:snapshot`, `presence:update`, `typing:update`, `message:new`, `message:updated`, `message:deleted`, `message:delivered`, `message:read`, `chat:read`, `message:pinned`, `notification:new`, `notification:read`, `notification:removed`, `friend:accepted`, `friend:removed`, `contact:blocked`, `contact:unblocked`, `call:incoming`, `call:accepted`, `call:signal`, `call:declined`, `call:cancelled`, `call:missed`, `call:ended`.
+`session:ready`, `session:error`, `presence:snapshot`, `presence:update`, `typing:update`, `message:new`, `message:updated`, `message:reaction`, `message:deleted`, `message:delivered`, `message:read`, `chat:read`, `message:pinned`, `notification:new`, `notification:read`, `notification:removed`, `friend:accepted`, `friend:removed`, `contact:blocked`, `contact:unblocked`, `call:incoming`, `call:accepted`, `call:signal`, `call:declined`, `call:cancelled`, `call:missed`, `call:ended`.
 
 ## Quick examples
 

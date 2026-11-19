@@ -2,7 +2,7 @@ import { AppError, badRequest, forbidden, notFound } from '../../utils/errors.js
 import { cleanText } from '../../utils/sanitize.js';
 import { mapMessage } from '../../utils/serialize.js';
 import { withTransaction, query } from '../../db/index.js';
-import { MAX_MESSAGE_LENGTH, STICKER_IDS } from '../../config/constants.js';
+import { GIF_IDS, MAX_MESSAGE_LENGTH, STICKER_IDS } from '../../config/constants.js';
 import { emitToUsers } from '../../realtime/events.js';
 import { deleteStoredFile } from '../../services/storage.js';
 import * as chatsRepo from '../chats/chats.repository.js';
@@ -18,6 +18,7 @@ function previewFor(message) {
   if (message.type === 'voice') return 'Voice message';
   if (message.type === 'file') return message.attachments[0]?.name || 'Attachment';
   if (message.type === 'sticker') return 'Sticker';
+  if (message.type === 'gif') return 'GIF';
   return (message.body || '').slice(0, 140);
 }
 
@@ -45,9 +46,10 @@ async function assertMember(chatId, userId, { write = false } = {}) {
 async function hydrate(rows) {
   if (!rows.length) return [];
   const ids = rows.map((row) => row.id);
-  const [attachments, receiptsMap, pinned] = await Promise.all([
+  const [attachments, receiptsMap, reactionsMap, pinned] = await Promise.all([
     attachmentsRepo.getAttachmentsForMessages(ids),
     repo.getReceiptsForMessages(ids),
+    repo.getReactionsForMessages(ids),
     repo.getPinnedIdsForMessages(ids),
   ]);
 
@@ -58,6 +60,7 @@ async function hydrate(rows) {
         ...receipt,
         read_at: receipt.read_receipts_enabled === false ? null : receipt.read_at,
       })),
+      reactions: reactionsMap.get(row.id) ?? [],
       pinned: pinned.has(row.id),
     }),
   );
@@ -77,6 +80,10 @@ function resolveType(requestedType, attachments) {
   if (requestedType === 'sticker') {
     if (attachments.length) throw badRequest('Stickers cannot include attachments.');
     return 'sticker';
+  }
+  if (requestedType === 'gif') {
+    if (attachments.length) throw badRequest('GIFs cannot include attachments.');
+    return 'gif';
   }
   if (requestedType === 'voice') {
     if (attachments.length !== 1 || !hasAudio) {
@@ -176,6 +183,9 @@ export async function sendMessage(userId, chatId, input) {
   if (type === 'text' && !body) throw badRequest('Write a message before sending.');
   if (type === 'sticker' && !STICKER_IDS.has(body)) {
     throw badRequest('Choose a valid sticker.');
+  }
+  if (type === 'gif' && !GIF_IDS.has(body)) {
+    throw badRequest('Choose a valid GIF.');
   }
 
   let replyToId = input.replyToId ?? null;
@@ -319,6 +329,28 @@ export async function setPinned(userId, messageId, pinned) {
   emitToUsers(memberIds, 'message:pinned', { chatId: info.chat_id, messageId, pinned });
 
   return { pinned, chatId: info.chat_id, messageId };
+}
+
+export async function toggleReaction(userId, messageId, emojiInput) {
+  const info = await repo.getMessageChatInfo(messageId);
+  if (!info) throw notFound('Message not found.');
+  await assertMember(info.chat_id, userId, { write: true });
+  if (info.deleted_at) throw badRequest('Deleted messages cannot be reacted to.');
+
+  const emoji = cleanText(emojiInput, { maxLength: 16, allowNewlines: false });
+  if (!emoji || !/\p{Extended_Pictographic}/u.test(emoji)) {
+    throw badRequest('Choose an emoji reaction.');
+  }
+
+  await withTransaction((tx) => repo.toggleReaction(messageId, userId, emoji, tx));
+  const message = await hydrateOne(messageId);
+  const memberIds = await chatsRepo.getMemberIds(info.chat_id);
+  emitToUsers(memberIds, 'message:reaction', {
+    chatId: info.chat_id,
+    messageId,
+    reactions: message.reactions,
+  });
+  return message;
 }
 
 export async function listPinned(chatId, userId) {

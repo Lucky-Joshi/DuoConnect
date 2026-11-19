@@ -11,10 +11,17 @@ const router = Router();
 router.use(requireAuth);
 
 const messageParams = z.object({ messageId: uuidSchema });
+const reactionBody = z.object({ emoji: z.string().min(1).max(16) });
 
 router.get('/search', controller.search);
 router.patch('/:messageId', messageLimiter, validate({ params: messageParams }), controller.edit);
 router.delete('/:messageId', validate({ params: messageParams }), controller.remove);
+router.post(
+  '/:messageId/reactions',
+  messageLimiter,
+  validate({ params: messageParams, body: reactionBody }),
+  controller.react,
+);
 router.post('/:messageId/pin', validate({ params: messageParams }), controller.pin);
 router.delete('/:messageId/pin', validate({ params: messageParams }), controller.unpin);
 router.post(

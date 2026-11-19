@@ -833,6 +833,10 @@ export function ChatThread({ chatId }) {
                     isLastInGroup={row.isLastInGroup}
                     canMessage={Boolean(chat?.canMessage)}
                     highlighted={highlightId === row.message.id}
+                    currentUserId={me?.id}
+                    onReact={(message, emoji) =>
+                      useChatStore.getState().toggleReaction(message.id, emoji)
+                    }
                     onReply={(message) => {
                       setEditing(null);
                       setReplyTo(message);
