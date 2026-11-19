@@ -195,7 +195,7 @@ Send body:
 }
 ```
 
-Types: `text | image | file | voice`. Attachments must first be uploaded and are claimed atomically by the message. `clientId` is echoed back so optimistic UI can reconcile.
+Types: `text | image | file | voice | sticker`. Attachments must first be uploaded and are claimed atomically by the message. Stickers use a curated sticker id as `body` and accept no attachments. `clientId` is echoed back so optimistic UI can reconcile.
 
 ## Messages
 

@@ -15,7 +15,7 @@ const chatIdSchema = z.object({ chatId: uuidSchema });
 const sendSchema = z.object({
   chatId: uuidSchema,
   body: z.string().max(MAX_MESSAGE_LENGTH).optional().default(''),
-  type: z.enum(['text', 'image', 'file', 'voice']).optional().default('text'),
+  type: z.enum(['text', 'image', 'file', 'voice', 'sticker']).optional().default('text'),
   replyToId: uuidSchema.nullish(),
   attachmentIds: z.array(uuidSchema).max(10).optional().default([]),
   clientId: z.string().max(64).optional(),

@@ -2,7 +2,7 @@ import { AppError, badRequest, forbidden, notFound } from '../../utils/errors.js
 import { cleanText } from '../../utils/sanitize.js';
 import { mapMessage } from '../../utils/serialize.js';
 import { withTransaction, query } from '../../db/index.js';
-import { MAX_MESSAGE_LENGTH } from '../../config/constants.js';
+import { MAX_MESSAGE_LENGTH, STICKER_IDS } from '../../config/constants.js';
 import { emitToUsers } from '../../realtime/events.js';
 import { deleteStoredFile } from '../../services/storage.js';
 import * as chatsRepo from '../chats/chats.repository.js';
@@ -17,6 +17,7 @@ function previewFor(message) {
   if (message.type === 'image') return 'Photo';
   if (message.type === 'voice') return 'Voice message';
   if (message.type === 'file') return message.attachments[0]?.name || 'Attachment';
+  if (message.type === 'sticker') return 'Sticker';
   return (message.body || '').slice(0, 140);
 }
 
@@ -73,6 +74,10 @@ function resolveType(requestedType, attachments) {
   const hasImage = attachments.some((item) => IMAGE_MIME.test(item.mime_type));
   const hasAudio = attachments.some((item) => AUDIO_MIME.test(item.mime_type));
 
+  if (requestedType === 'sticker') {
+    if (attachments.length) throw badRequest('Stickers cannot include attachments.');
+    return 'sticker';
+  }
   if (requestedType === 'voice') {
     if (attachments.length !== 1 || !hasAudio) {
       throw badRequest('Voice notes need a single audio attachment.');
@@ -169,6 +174,9 @@ export async function sendMessage(userId, chatId, input) {
     maxLength: type === 'text' ? MAX_MESSAGE_LENGTH : 2000,
   });
   if (type === 'text' && !body) throw badRequest('Write a message before sending.');
+  if (type === 'sticker' && !STICKER_IDS.has(body)) {
+    throw badRequest('Choose a valid sticker.');
+  }
 
   let replyToId = input.replyToId ?? null;
   if (replyToId) {

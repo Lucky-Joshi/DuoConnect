@@ -400,6 +400,28 @@ test('friendship, direct chat, messages, receipts, pins, and search', async () =
   assert.notEqual(forwarded.body.data.id, reply.body.data.id);
   assert.equal(forwarded.body.data.body, reply.body.data.body);
 
+  const sticker = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'heart', type: 'sticker' });
+  assert.equal(sticker.status, 201);
+  assert.equal(sticker.body.data.type, 'sticker');
+  assert.equal(sticker.body.data.body, 'heart');
+
+  const invalidSticker = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'not-a-sticker', type: 'sticker' });
+  assert.equal(invalidSticker.status, 400);
+
+  const forwardedSticker = await client
+    .post(`/api/messages/${sticker.body.data.id}/forward`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ chatId });
+  assert.equal(forwardedSticker.status, 201);
+  assert.equal(forwardedSticker.body.data.type, 'sticker');
+  assert.equal(forwardedSticker.body.data.body, 'heart');
+
   const read = await client
     .post(`/api/chats/${chatId}/read`)
     .set('Authorization', `Bearer ${b.token}`)

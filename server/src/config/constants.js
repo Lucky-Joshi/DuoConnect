@@ -5,7 +5,33 @@ export const TYPING_TTL_MS = 4_000;
 export const ONLINE_STATUSES = new Set(['online', 'away']);
 
 export const CHAT_KINDS = ['direct', 'group'];
-export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'system'];
+export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'system'];
+export const STICKER_IDS = new Set([
+  'wave',
+  'smile',
+  'laugh',
+  'wink',
+  'cool',
+  'wow',
+  'sad',
+  'cry',
+  'angry',
+  'think',
+  'heart',
+  'love',
+  'thumbsup',
+  'clap',
+  'pray',
+  'yes',
+  'no',
+  'fire',
+  'party',
+  'gift',
+  'star',
+  'coffee',
+  'music',
+  'cat',
+]);
 export const CALL_STATUSES = [
   'ringing',
   'ongoing',

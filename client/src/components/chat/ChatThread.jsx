@@ -112,15 +112,6 @@ function DetailsDrawer({ open, onClose, chat, members, pins, items, onJump }) {
     [items],
   );
 
-  const preview = (message) =>
-    message.type === 'image'
-      ? 'Photo'
-      : message.type === 'voice'
-        ? 'Voice message'
-        : message.type === 'file'
-          ? (message.attachments?.[0]?.name ?? 'Attachment')
-          : (message.body ?? 'Message');
-
   const setPreference = async (patch, label) => {
     try {
       await updatePreferences(chat.id, patch);
@@ -318,7 +309,7 @@ function DetailsDrawer({ open, onClose, chat, members, pins, items, onJump }) {
                           <Pin size={12} />
                           <span>
                             <strong>{pin.sender?.displayName ?? 'Message'}</strong>
-                            <span>{preview(pin)}</span>
+                            <span>{messagePreview(pin)}</span>
                           </span>
                           <time>{formatChatTimestamp(pin.createdAt)}</time>
                         </button>

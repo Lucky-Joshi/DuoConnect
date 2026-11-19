@@ -7,6 +7,7 @@ import {
   isToday,
   isYesterday,
 } from 'date-fns';
+import { getSticker } from './stickers';
 
 export const cn = (...args) => clsx(...args);
 
@@ -102,6 +103,10 @@ export function messagePreview(message) {
   if (message.type === 'image') return 'Photo';
   if (message.type === 'voice') return 'Voice message';
   if (message.type === 'file') return message.attachments?.[0]?.name || 'Attachment';
+  if (message.type === 'sticker') {
+    const sticker = getSticker(message.body);
+    return sticker.unknown ? 'Sticker' : `Sticker: ${sticker.label}`;
+  }
   return message.body?.slice(0, 160) || '';
 }
 

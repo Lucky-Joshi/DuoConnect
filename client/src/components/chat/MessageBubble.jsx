@@ -33,6 +33,7 @@ import {
   messagePreview,
   splitLinks,
 } from '../../lib/utils';
+import { getSticker } from '../../lib/stickers';
 import styles from './MessageBubble.module.css';
 
 function TextBody({ text }) {
@@ -48,6 +49,23 @@ function TextBody({ text }) {
         ),
       )}
     </p>
+  );
+}
+
+function Sticker({ message }) {
+  const sticker = getSticker(message.body);
+  return (
+    <div className={styles.stickerWrap}>
+      <span
+        className={styles.sticker}
+        data-tint={sticker.tint}
+        role="img"
+        aria-label={`${sticker.label} sticker`}
+        title={sticker.label}
+      >
+        {sticker.emoji}
+      </span>
+    </div>
   );
 }
 
@@ -304,6 +322,7 @@ export function MessageBubble({
             own ? styles.bubbleOwn : styles.bubbleReceived,
             !isLastInGroup && styles.bubbleGrouped,
             deleted && styles.bubbleDeleted,
+            message.type === 'sticker' && styles.bubbleSticker,
             pending && styles.bubblePending,
             failed && styles.bubbleFailed,
           )}
@@ -338,9 +357,15 @@ export function MessageBubble({
 
               {files.length ? <FileList attachments={files} /> : null}
 
-              {message.body ? <TextBody text={message.body} /> : null}
+              {message.type === 'sticker' ? <Sticker message={message} /> : null}
 
-              {!images.length && !files.length && !voice && !message.body ? (
+              {message.type !== 'sticker' && message.body ? <TextBody text={message.body} /> : null}
+
+              {!images.length &&
+              !files.length &&
+              !voice &&
+              message.type !== 'sticker' &&
+              !message.body ? (
                 <p className={styles.emptyBody}>Empty message</p>
               ) : null}
             </>
@@ -377,7 +402,7 @@ export function MessageBubble({
                   className={cn(styles.menu, own ? styles.menuOwn : styles.menuReceived)}
                   role="menu"
                 >
-                  {message.body && !deleted ? (
+                  {message.body && message.type !== 'sticker' && !deleted ? (
                     <button type="button" role="menuitem" onClick={() => run(copy)}>
                       <Copy size={14} /> Copy text
                     </button>

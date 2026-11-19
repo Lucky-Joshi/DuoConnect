@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import EmojiPicker from 'emoji-picker-react';
-import { ArrowUp, ImagePlus, Mic, Paperclip, Pencil, Smile, Square, Trash2, X } from 'lucide-react';
+import {
+  ArrowUp,
+  ImagePlus,
+  Mic,
+  Paperclip,
+  Pencil,
+  Smile,
+  Square,
+  Sticker,
+  Trash2,
+  X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Spinner } from '../ui/Primitives';
 import { useChatStore } from '../../stores/chatStore';
@@ -8,6 +19,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { api, unwrap } from '../../lib/api';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { MAX_FILE_MB, MAX_MESSAGE_LENGTH } from '../../lib/constants';
+import { STICKERS } from '../../lib/stickers';
 import {
   cn,
   formatCallDuration,
@@ -15,6 +27,7 @@ import {
   getErrorMessage,
   isImageAttachment,
   mediaUrl,
+  messagePreview,
 } from '../../lib/utils';
 import styles from './Composer.module.css';
 
@@ -73,6 +86,7 @@ export function Composer({
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -82,6 +96,7 @@ export function Composer({
   const fileRef = useRef(null);
   const emojiRef = useClickOutside(() => setEmojiOpen(false), emojiOpen);
   const attachRef = useClickOutside(() => setAttachOpen(false), attachOpen);
+  const stickerRef = useClickOutside(() => setStickerOpen(false), stickerOpen);
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -188,6 +203,28 @@ export function Composer({
     setStaged([]);
     onCancelReply?.();
     onCancelEdit?.();
+  };
+
+  const sendSticker = async (sticker) => {
+    if (disabled || editing || sending || uploading) return;
+    setStickerOpen(false);
+    setSending(true);
+    try {
+      await sendMessage(chatId, {
+        body: sticker.id,
+        type: 'sticker',
+        replyToId: replyTo?.id ?? null,
+        replyTo: replyTo ?? null,
+      });
+      onCancelReply?.();
+      stopTyping(chatId);
+      onSent?.();
+      inputRef.current?.focus();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'That sticker could not be sent.'));
+    } finally {
+      setSending(false);
+    }
   };
 
   const submit = async () => {
@@ -371,7 +408,7 @@ export function Composer({
           <span className={styles.contextBar} />
           <div className={styles.contextText}>
             <strong>Replying to {replyTo.sender?.displayName ?? 'message'}</strong>
-            <span>{replyTo.body?.slice(0, 140) || 'Attachment'}</span>
+            <span>{messagePreview(replyTo)}</span>
           </div>
           <button type="button" onClick={onCancelReply} aria-label="Cancel reply">
             <X size={15} />
@@ -426,7 +463,11 @@ export function Composer({
               <button
                 type="button"
                 className={styles.tool}
-                onClick={() => setAttachOpen((open) => !open)}
+                onClick={() => {
+                  setAttachOpen((open) => !open);
+                  setEmojiOpen(false);
+                  setStickerOpen(false);
+                }}
                 aria-label="Add an attachment"
                 aria-expanded={attachOpen}
                 disabled={uploading || sending}
@@ -467,12 +508,58 @@ export function Composer({
 
             <button
               type="button"
-              className={styles.tool}
+              className={cn(styles.tool, styles.writeTool)}
               onClick={() => inputRef.current?.focus()}
               aria-label="Write a message"
             >
               <span className={styles.writeGlyph}>Aa</span>
             </button>
+
+            <div className={styles.popoverWrap} ref={stickerRef}>
+              <button
+                type="button"
+                className={cn(styles.tool, stickerOpen && styles.toolActive)}
+                onClick={() => {
+                  setStickerOpen((open) => !open);
+                  setAttachOpen(false);
+                  setEmojiOpen(false);
+                }}
+                aria-label="Choose a sticker"
+                aria-expanded={stickerOpen}
+                disabled={editing || sending || uploading || voiceBusy || disabled}
+              >
+                <Sticker size={18} />
+              </button>
+              {stickerOpen ? (
+                <div className={styles.stickerPicker} role="dialog" aria-label="Stickers">
+                  <div className={styles.stickerHeader}>
+                    <strong>Stickers</strong>
+                    <span>Pick one to send instantly</span>
+                  </div>
+                  <div className={styles.stickerGrid}>
+                    {STICKERS.map((sticker) => (
+                      <button
+                        key={sticker.id}
+                        type="button"
+                        className={styles.stickerOption}
+                        title={sticker.label}
+                        aria-label={`Send ${sticker.label} sticker`}
+                        onClick={() => sendSticker(sticker)}
+                        disabled={sending || disabled}
+                      >
+                        <span
+                          className={styles.stickerTile}
+                          data-tint={sticker.tint}
+                          aria-hidden="true"
+                        >
+                          {sticker.emoji}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <textarea
@@ -502,7 +589,11 @@ export function Composer({
               <button
                 type="button"
                 className={cn(styles.tool, emojiOpen && styles.toolActive)}
-                onClick={() => setEmojiOpen((open) => !open)}
+                onClick={() => {
+                  setEmojiOpen((open) => !open);
+                  setAttachOpen(false);
+                  setStickerOpen(false);
+                }}
                 aria-label="Choose an emoji"
                 aria-expanded={emojiOpen}
               >

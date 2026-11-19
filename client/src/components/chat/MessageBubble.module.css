@@ -111,6 +111,80 @@
   border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
 }
 
+/* Stickers --------------------------------------------------------------- */
+.bubbleSticker,
+.bubbleOwn.bubbleSticker,
+.bubbleReceived.bubbleSticker {
+  min-width: 0;
+  padding: 4px 4px 2px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+.bubbleSticker:hover {
+  box-shadow: none;
+}
+
+.bubbleSticker .footer {
+  justify-content: center;
+  margin-top: 0;
+}
+
+.stickerWrap {
+  display: flex;
+  justify-content: center;
+  padding: 2px;
+}
+
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  font-size: 62px;
+  line-height: 1;
+  user-select: none;
+  box-shadow:
+    0 16px 34px -20px rgba(15, 23, 42, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  animation: sticker-pop 260ms var(--ease-out);
+}
+
+.sticker[data-tint='violet'] {
+  background: linear-gradient(145deg, #ede9fe, #cffafe);
+}
+
+.sticker[data-tint='aqua'] {
+  background: linear-gradient(145deg, #cffafe, #dbeafe);
+}
+
+.sticker[data-tint='coral'] {
+  background: linear-gradient(145deg, #ffedd5, #fecdd3);
+}
+
+.sticker[data-tint='amber'] {
+  background: linear-gradient(145deg, #fef3c7, #fed7aa);
+}
+
+.sticker[data-tint='rose'] {
+  background: linear-gradient(145deg, #fce7f3, #ddd6fe);
+}
+
+@keyframes sticker-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-6deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
 .bubble:hover {
   box-shadow: 0 4px 14px -8px rgba(0, 0, 0, 0.35);
 }
@@ -649,5 +723,12 @@
 
   .voice {
     min-width: 180px;
+  }
+
+  .sticker {
+    width: 92px;
+    height: 92px;
+    font-size: 52px;
+    border-radius: 24px;
   }
 }

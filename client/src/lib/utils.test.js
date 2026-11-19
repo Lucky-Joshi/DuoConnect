@@ -12,6 +12,7 @@ import {
   presenceLabel,
   splitLinks,
 } from './utils';
+import { getSticker, STICKERS } from './stickers';
 
 describe('formatting helpers', () => {
   it('builds initials from up to two name parts', () => {
@@ -50,6 +51,18 @@ describe('message previews', () => {
       'brief.pdf',
     );
     expect(messagePreview({ type: 'text', body: 'Hello there' })).toBe('Hello there');
+  });
+
+  it('describes stickers without exposing their raw ids', () => {
+    expect(messagePreview({ type: 'sticker', body: 'heart' })).toBe('Sticker: Heart');
+    expect(messagePreview({ type: 'sticker', body: 'not-a-sticker' })).toBe('Sticker');
+  });
+
+  it('keeps the sticker catalog stable', () => {
+    const ids = STICKERS.map((sticker) => sticker.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(getSticker('heart').label).toBe('Heart');
+    expect(getSticker('missing').unknown).toBe(true);
   });
 
   it('detects attachment media types', () => {

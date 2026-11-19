@@ -85,8 +85,8 @@ Composite PK `(chat_id, user_id)`; role, `joined_at`, `last_read_seq`, `is_pinne
 | ---------------------------------- | ---------------------------------------------------------------- |
 | `seq`                              | Generated identity, unique; used for pagination and read cursors |
 | `chat_id`, `sender_id`             | Required                                                         |
-| `type`                             | `text \| image \| file \| voice \| system`                       |
-| `body`                             | Nullable for media                                               |
+| `type`                             | `text \| image \| file \| voice \| sticker \| system`            |
+| `body`                             | Nullable for media; curated sticker id for stickers              |
 | `reply_to_id`, `forwarded_from_id` | Self-references, `ON DELETE SET NULL`                            |
 | `metadata`                         | jsonb for extras                                                 |
 | `search_vector`                    | Generated `tsvector` from body                                   |
