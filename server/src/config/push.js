@@ -11,7 +11,7 @@ if (!env.vapidEnabled) {
   );
 } else {
   try {
-    setVapidDetails(env.vapidSubject, env.vapidPublicKey, env.vapidPrivateKey);
+    setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
     enabled = true;
   } catch (error) {
     initializationError = error?.message || 'Unknown VAPID configuration error';
@@ -20,12 +20,12 @@ if (!env.vapidEnabled) {
 }
 
 export const pushEnabled = enabled;
-export const vapidPublicKey = env.vapidPublicKey;
+export const vapidPublicKey = env.VAPID_PUBLIC_KEY;
 export const pushDiagnostics = {
   enabled,
-  subjectConfigured: Boolean(env.vapidSubject),
-  publicKeyConfigured: Boolean(env.vapidPublicKey),
-  privateKeyConfigured: Boolean(env.vapidPrivateKey),
+  subjectConfigured: Boolean(env.VAPID_SUBJECT),
+  publicKeyConfigured: Boolean(env.VAPID_PUBLIC_KEY),
+  privateKeyConfigured: Boolean(env.VAPID_PRIVATE_KEY),
   error: initializationError,
 };
 
