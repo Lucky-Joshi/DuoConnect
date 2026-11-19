@@ -15,6 +15,7 @@ router.delete(
   validate({ body: unsubscribeSchema }),
   pushController.unsubscribe,
 );
+router.post('/push/test', pushController.test);
 router.get('/', controller.list);
 router.get('/summary', controller.summary);
 router.post('/read-all', controller.markAllRead);

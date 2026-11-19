@@ -7,6 +7,7 @@ import {
   Bell,
   Camera,
   Check,
+  Download,
   Eye,
   EyeOff,
   KeyRound,
@@ -45,7 +46,9 @@ import {
   hasPushSubscription,
   pushPermission,
   pushSupported,
+  sendTestPush,
 } from '../lib/push';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { cn, formatRelative, getErrorDetails, getErrorMessage, playChime } from '../lib/utils';
@@ -454,6 +457,7 @@ function NotificationsPanel() {
   const updateSettings = useAuthStore((state) => state.updateSettings);
   const [saving, setSaving] = useState(null);
   const [pushEnabledState, setPushEnabledState] = useState(false);
+  const { canInstall, isIOS, installed, install } = useInstallPrompt();
 
   const prefs = settings?.notifications ?? {};
   const desktopSupported = typeof window !== 'undefined' && 'Notification' in window;
@@ -497,6 +501,27 @@ function NotificationsPanel() {
       return;
     }
     await save('desktop', true);
+  };
+
+  const testPush = async () => {
+    if (saving) return;
+    setSaving('test');
+    try {
+      await sendTestPush();
+      toast.success('Test notification sent.');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Could not send the test notification.'));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const installApp = async () => {
+    try {
+      if (await install()) toast.success('DuoConnect installed.');
+    } catch {
+      toast.error('The app could not be installed from this browser.');
+    }
   };
 
   const togglePush = async (next) => {
@@ -578,6 +603,46 @@ function NotificationsPanel() {
             onChange={toggleDesktop}
           />
         </div>
+
+        {pushSupported() && (
+          <div className={styles.inlineFoot}>
+            <span className={styles.formHint}>
+              {pushEnabledState
+                ? 'Push is active on this browser. Send a test to confirm alerts arrive with the page closed.'
+                : 'Turn on Push notifications, then send a test to confirm alerts arrive with the page closed.'}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={Bell}
+              disabled={Boolean(saving) || !pushEnabledState}
+              onClick={testPush}
+            >
+              Send test notification
+            </Button>
+          </div>
+        )}
+
+        {!installed && (canInstall || isIOS) && (
+          <div className={styles.inlineFoot}>
+            <span className={styles.formHint}>
+              {isIOS
+                ? 'On iPhone, tap Share, then Add to Home Screen before enabling push.'
+                : 'Install DuoConnect for a full-screen app and more reliable background alerts.'}
+            </span>
+            {canInstall && (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={Download}
+                disabled={Boolean(saving)}
+                onClick={installApp}
+              >
+                Install app
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className={styles.inlineFoot}>
           <span className={styles.formHint}>

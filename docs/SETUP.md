@@ -106,7 +106,7 @@ Leave it empty for same-origin deploys where Express serves `client/dist`.
 VITE_VAPID_PUBLIC_KEY=<VAPID_PUBLIC_KEY>
 ```
 
-This is baked into the bundle at build time. Users enable push from **Settings → Notifications → Push notifications**; the browser asks for permission and registers a service worker at `/sw.js`. On iPhone, the site must be added to the Home Screen before Web Push works.
+This is baked into the bundle at build time. Users enable push from **Settings → Notifications → Push notifications**; the browser asks for permission and registers a service worker at `/sw.js`. Use **Send test notification** there to verify delivery with the page closed. Chrome and Edge also offer **Install app** from that panel. On iPhone, the site must be added to the Home Screen before Web Push works.
 
 ### WebRTC (ICE servers)
 

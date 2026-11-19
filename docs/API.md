@@ -236,6 +236,7 @@ Limits: 15 MB default (`MAX_UPLOAD_MB`), 5 MB avatars, 10 attachments per messag
 | GET    | `/api/notifications/push/public-key`  | Yes  | `{ publicKey, enabled }`      |
 | POST   | `/api/notifications/push/subscribe`   | Yes  | Register `{ endpoint, keys }` |
 | DELETE | `/api/notifications/push/unsubscribe` | Yes  | Remove `{ endpoint }`         |
+| POST   | `/api/notifications/push/test`        | Yes  | Send a test push to this user |
 
 ## Calls
 

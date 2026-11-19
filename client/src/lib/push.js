@@ -95,6 +95,11 @@ export async function syncPushSubscription() {
   }
 }
 
+/** Ask the server to deliver a test push to this browser. */
+export async function sendTestPush() {
+  return api.post('/notifications/push/test');
+}
+
 /** True only when this browser already has an active push subscription. */
 export async function hasPushSubscription() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;

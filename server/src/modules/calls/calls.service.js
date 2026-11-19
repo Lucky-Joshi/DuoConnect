@@ -133,6 +133,10 @@ export async function startCall(userId, { chatId, kind }) {
       url: `/app/c/${chatId}`,
       tag: `call:${callId}`,
       icon: '/icon-192.png',
+      actions: [
+        { action: 'open', title: 'Open chat' },
+        { action: 'calls', title: 'View calls' },
+      ],
     },
     { ttl: Math.ceil(CALL_RING_TIMEOUT_MS / 1000) },
   );

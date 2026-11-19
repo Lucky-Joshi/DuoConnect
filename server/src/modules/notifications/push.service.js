@@ -24,6 +24,22 @@ export async function unsubscribe(userId, endpoint) {
   return { success: await repo.remove(userId, endpoint) };
 }
 
+export async function sendTest(userId) {
+  const sent = await sendToUser(
+    userId,
+    {
+      type: 'system',
+      title: 'DuoConnect test',
+      body: 'Push notifications are working.',
+      url: '/app/notifications',
+      tag: 'push-test',
+      icon: '/icon-192.png',
+    },
+    { force: true, ttl: 60 },
+  );
+  return { enabled: pushEnabled, sent };
+}
+
 /**
  * Deliver a background notification to every browser registered for this user.
  * Online users are skipped: the open tab already shows toasts and notifications.

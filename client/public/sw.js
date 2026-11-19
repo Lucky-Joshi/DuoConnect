@@ -56,7 +56,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action;
   let url = event.notification.data?.url || DEFAULT_URL;
-  if (action === 'decline') url = '/app/calls';
+  if (action === 'calls' || action === 'decline') url = '/app/calls';
   event.waitUntil(focusOrOpen(url));
 });
 

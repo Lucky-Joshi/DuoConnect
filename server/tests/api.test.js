@@ -423,6 +423,12 @@ test('push subscription management and active-call lookup', async () => {
   assert.equal(key.status, 200);
   assert.equal(key.body.data.enabled, false);
 
+  const disabledTest = await client
+    .post('/api/notifications/push/test')
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(disabledTest.status, 400);
+  assert.equal(disabledTest.body.error.code, 'PUSH_NOT_CONFIGURED');
+
   const endpoint = 'https://fcm.googleapis.com/fcm/send/test-subscription';
   const subscription = {
     endpoint,
