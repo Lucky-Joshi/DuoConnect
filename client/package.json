@@ -6,7 +6,7 @@
   "description": "DuoConnect web client — chat, presence, friends, and WebRTC calls.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender-landing.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
