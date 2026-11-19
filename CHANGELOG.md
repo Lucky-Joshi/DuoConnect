@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Curated sticker sharing in chat, with a picker, rich rendering, previews,
+  forwarding, and server-side validation. (`184c2f8`)
 - Live username availability feedback during sign-up, with a debounced
   case-insensitive check and inline Available/Taken status. (`4bfe542`)
 - Automatic resend of unsent messages via a local outbox, with server-side
