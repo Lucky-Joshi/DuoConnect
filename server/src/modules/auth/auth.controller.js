@@ -36,6 +36,10 @@ const sessionResponse = (result) => ({
   refreshMaxAge: result.refreshMaxAge,
 });
 
+export const checkUsername = asyncHandler(async (req, res) => {
+  res.json({ data: await service.checkUsername(req.valid.query.username) });
+});
+
 export const register = asyncHandler(async (req, res) => {
   const result = await service.register(req.valid.body, meta(req));
   setSessionCookie(res, result);

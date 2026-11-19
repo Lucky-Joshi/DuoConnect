@@ -62,6 +62,13 @@ export async function emailOrUsernameTaken(email, username) {
   };
 }
 
+export async function usernameTaken(username) {
+  const { rows } = await query('SELECT 1 FROM users WHERE lower(username) = lower($1) LIMIT 1', [
+    username,
+  ]);
+  return rows.length > 0;
+}
+
 export async function createUser({ email, username, displayName, passwordHash }) {
   return withTransaction(async (tx) => {
     const { rows } = await tx.query(

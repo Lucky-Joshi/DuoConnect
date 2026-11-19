@@ -500,3 +500,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+.usernameStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.username_available {
+  color: var(--success);
+}
+
+.username_taken,
+.username_invalid {
+  color: var(--danger);
+}
+
+.username_checking {
+  color: var(--text-muted);
+}
+
+@media (max-width: 420px) {
+  .usernameStatus span {
+    display: none;
+  }
+}

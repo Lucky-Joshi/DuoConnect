@@ -27,6 +27,12 @@ export const authLimiter = createLimiter({
   message: 'Too many authentication attempts. Try again in a few minutes.',
 });
 
+export const lookupLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  limit: 120,
+  message: 'Too many username checks. Please slow down.',
+});
+
 export const uploadLimiter = createLimiter({
   windowMs: 60 * 60 * 1000,
   limit: 120,

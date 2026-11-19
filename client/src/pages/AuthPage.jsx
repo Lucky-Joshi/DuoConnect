@@ -13,9 +13,11 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Button, Logo, TextField } from '../components/ui/Primitives';
+import { Button, Logo, Spinner, TextField } from '../components/ui/Primitives';
+import { api } from '../lib/api';
 import { useAuthStore } from '../stores/authStore';
 import { getErrorDetails, getErrorMessage } from '../lib/utils';
 import styles from './AuthPage.module.css';
@@ -81,6 +83,48 @@ export default function AuthPage({ mode = 'login' }) {
   } = useForm({ defaultValues: DEFAULTS, mode: 'onBlur' });
 
   const password = watch('password');
+  const username = watch('username');
+  const [usernameCheck, setUsernameCheck] = useState({ state: 'idle', message: '' });
+
+  useEffect(() => {
+    if (isLogin) return undefined;
+
+    const normalized = (username ?? '').trim().toLowerCase();
+    if (!normalized) {
+      setUsernameCheck({ state: 'idle', message: '' });
+      return undefined;
+    }
+    if (normalized.length < 3) {
+      setUsernameCheck({ state: 'invalid', message: 'At least 3 characters.' });
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setUsernameCheck({ state: 'checking', message: 'Checking…' });
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.get('/auth/username-available', {
+          params: { username: normalized },
+          signal: controller.signal,
+        });
+        setUsernameCheck({
+          state: data?.available ? 'available' : 'taken',
+          message: data?.message ?? 'That username is taken.',
+        });
+      } catch (error) {
+        if (error?.name !== 'CanceledError' && error?.code !== 'ERR_CANCELED') {
+          // A failed check must never block registration; the server still
+          // enforces uniqueness when the account is created.
+          setUsernameCheck({ state: 'idle', message: '' });
+        }
+      }
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [username, isLogin]);
 
   useEffect(() => {
     reset(DEFAULTS);
@@ -93,6 +137,16 @@ export default function AuthPage({ mode = 'login' }) {
   if (status === 'authenticated') return <Navigate to={redirectTo} replace />;
 
   const onSubmit = async (values) => {
+    if (!isLogin && usernameCheck.state === 'taken') {
+      setError('username', { type: 'server', message: 'That username is taken.' });
+      toast.error('That username is taken. Choose another one.');
+      return;
+    }
+    if (!isLogin && usernameCheck.state === 'checking') {
+      toast.error('Still checking that username. Try again in a moment.');
+      return;
+    }
+
     try {
       if (isLogin) {
         await login({
@@ -122,6 +176,10 @@ export default function AuthPage({ mode = 'login' }) {
         }
       }
       const code = error?.response?.data?.error?.code;
+      if (code === 'USERNAME_TAKEN') {
+        setError('username', { type: 'server', message: 'That username is taken.' });
+        setUsernameCheck({ state: 'taken', message: 'That username is taken.' });
+      }
       if (code === 'INVALID_CREDENTIALS') {
         setError('password', {
           type: 'server',
@@ -253,6 +311,34 @@ export default function AuthPage({ mode = 'login' }) {
                       autoComplete="username"
                       hint="Letters, numbers, dots"
                       error={errors.username?.message}
+                      trailing={
+                        usernameCheck.state === 'idle' ? null : (
+                          <span
+                            className={`${styles.usernameStatus} ${
+                              styles[`username_${usernameCheck.state}`] ?? ''
+                            }`}
+                            role="status"
+                            aria-live="polite"
+                          >
+                            {usernameCheck.state === 'checking' ? (
+                              <Spinner size={14} />
+                            ) : usernameCheck.state === 'available' ? (
+                              <Check size={15} />
+                            ) : (
+                              <X size={15} />
+                            )}
+                            {usernameCheck.state === 'checking' ? null : (
+                              <span>
+                                {usernameCheck.state === 'available'
+                                  ? 'Available'
+                                  : usernameCheck.state === 'taken'
+                                    ? 'Taken'
+                                    : 'Invalid'}
+                              </span>
+                            )}
+                          </span>
+                        )
+                      }
                       {...register('username', {
                         required: 'Choose a username.',
                         minLength: { value: 3, message: 'At least 3 characters.' },

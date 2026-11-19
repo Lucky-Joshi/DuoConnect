@@ -25,7 +25,7 @@ import supertest from 'supertest';
 
 const { runMigrations } = await import('../src/db/migrate.js');
 const { createApp } = await import('../src/app.js');
-const { closeDb } = await import('../src/db/index.js');
+const { closeDb, query } = await import('../src/db/index.js');
 
 const app = createApp();
 const client = supertest(app);
@@ -127,6 +127,65 @@ test('registration validates input and never leaks secrets', async () => {
   assert.equal(JSON.stringify(a.response.body).includes('password'), false);
   assert.equal(JSON.stringify(a.response.body).includes('password_hash'), false);
   assert.ok(a.cookie, 'refresh cookie is set');
+});
+
+test('username availability is checked live and case-insensitively', async () => {
+  const a = await register('av');
+
+  const available = await client.get('/api/auth/username-available').query({
+    username: `brand_new_${suffix}`,
+  });
+  assert.equal(available.status, 200, JSON.stringify(available.body));
+  assert.equal(available.body.data.valid, true);
+  assert.equal(available.body.data.available, true);
+
+  // A different case must still report the existing username as taken.
+  const taken = await client.get('/api/auth/username-available').query({
+    username: a.username.toUpperCase(),
+  });
+  assert.equal(taken.status, 200, JSON.stringify(taken.body));
+  assert.equal(taken.body.data.valid, true);
+  assert.equal(taken.body.data.available, false);
+  assert.match(taken.body.data.message, /taken/i);
+
+  const invalid = await client.get('/api/auth/username-available').query({ username: 'x' });
+  assert.equal(invalid.status, 200, JSON.stringify(invalid.body));
+  assert.equal(invalid.body.data.valid, false);
+  assert.equal(invalid.body.data.available, false);
+});
+
+test('duplicate usernames are rejected at every write path', async () => {
+  const a = await register('d1');
+  const b = await register('d2');
+
+  // Registration rejects a duplicate (including a case variant).
+  const duplicateRegister = await client.post('/api/auth/register').send({
+    email: `duplicate_${suffix}@example.test`,
+    username: a.username.toUpperCase(),
+    displayName: 'Duplicate',
+    password: PASSWORD,
+  });
+  assert.equal(duplicateRegister.status, 409, JSON.stringify(duplicateRegister.body));
+  assert.equal(duplicateRegister.body.error.code, 'USERNAME_TAKEN');
+
+  // A profile rename to an existing username is rejected too.
+  const duplicateRename = await client
+    .patch('/api/users/me')
+    .set('Authorization', `Bearer ${b.token}`)
+    .send({ username: a.username.toUpperCase() });
+  assert.equal(duplicateRename.status, 409, JSON.stringify(duplicateRename.body));
+  assert.equal(duplicateRename.body.error.code, 'USERNAME_TAKEN');
+
+  // The DB unique index is the final backstop even if a writer bypasses the
+  // service layer entirely (case-insensitively).
+  await assert.rejects(
+    query(
+      `INSERT INTO users (email, username, display_name, password_hash)
+       VALUES ($1, $2, $3, $4)`,
+      [`bypass_${suffix}@example.test`, a.username.toUpperCase(), 'Bypass', 'hash'],
+    ),
+    (error) => error.code === '23505',
+  );
 });
 
 test('session lifecycle: me, refresh rotation, sessions, and logout', async () => {

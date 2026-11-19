@@ -67,17 +67,18 @@ Limits are disabled under `NODE_ENV=test`.
 
 ## Auth
 
-| Method | Path                            | Auth   | Description                                                              |
-| ------ | ------------------------------- | ------ | ------------------------------------------------------------------------ |
-| POST   | `/api/auth/register`            | No     | Create an account and session                                            |
-| POST   | `/api/auth/login`               | No     | Sign in with email **or** username                                       |
-| POST   | `/api/auth/refresh`             | Cookie | Rotate the refresh token; returns `data: null` when no cookie is present |
-| POST   | `/api/auth/logout`              | Cookie | Revoke the current refresh token                                         |
-| GET    | `/api/auth/me`                  | Yes    | Current user + settings                                                  |
-| POST   | `/api/auth/change-password`     | Yes    | `{ currentPassword, newPassword }`                                       |
-| DELETE | `/api/auth/account`             | Yes    | `{ password }` — soft-deletes the account                                |
-| GET    | `/api/auth/sessions`            | Yes    | Refresh-token sessions for this account                                  |
-| DELETE | `/api/auth/sessions/:sessionId` | Yes    | Revoke one session                                                       |
+| Method | Path                                     | Auth   | Description                                                              |
+| ------ | ---------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| POST   | `/api/auth/register`                     | No     | Create an account and session                                            |
+| GET    | `/api/auth/username-available?username=` | No     | Live case-insensitive availability check for sign-up                     |
+| POST   | `/api/auth/login`                        | No     | Sign in with email **or** username                                       |
+| POST   | `/api/auth/refresh`                      | Cookie | Rotate the refresh token; returns `data: null` when no cookie is present |
+| POST   | `/api/auth/logout`                       | Cookie | Revoke the current refresh token                                         |
+| GET    | `/api/auth/me`                           | Yes    | Current user + settings                                                  |
+| POST   | `/api/auth/change-password`              | Yes    | `{ currentPassword, newPassword }`                                       |
+| DELETE | `/api/auth/account`                      | Yes    | `{ password }` — soft-deletes the account                                |
+| GET    | `/api/auth/sessions`                     | Yes    | Refresh-token sessions for this account                                  |
+| DELETE | `/api/auth/sessions/:sessionId`          | Yes    | Revoke one session                                                       |
 
 Register body:
 

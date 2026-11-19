@@ -9,6 +9,7 @@ import {
   signAccessToken,
 } from '../../utils/token.js';
 import { normalizeEmail, normalizeUsername } from '../../utils/sanitize.js';
+import { usernameSchema } from '../../utils/validation.js';
 import { mapPublicUser, mapSettings, mapSession } from '../../utils/serialize.js';
 import * as repo from './auth.repository.js';
 
@@ -41,6 +42,28 @@ async function issueSession(row, { remember = false, userAgent, ip, familyId = n
     refreshToken: token,
     refreshMaxAge: remember ? days * 24 * 60 * 60 * 1000 : null,
     expiresAt,
+  };
+}
+
+/** Public availability check used while choosing a username at sign-up. */
+export async function checkUsername(username) {
+  const normalized = normalizeUsername(username ?? '');
+  const parsed = usernameSchema.safeParse(normalized);
+  if (!parsed.success) {
+    return {
+      username: normalized,
+      valid: false,
+      available: false,
+      message: parsed.error.issues[0]?.message ?? 'Choose a different username.',
+    };
+  }
+
+  const taken = await repo.usernameTaken(normalized);
+  return {
+    username: normalized,
+    valid: true,
+    available: !taken,
+    message: taken ? 'That username is taken.' : 'This username is available.',
   };
 }
 
