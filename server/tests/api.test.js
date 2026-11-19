@@ -75,6 +75,7 @@ test('health endpoint reports the embedded database', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.body.status, 'ok');
   assert.equal(response.body.database, 'pglite-memory');
+  assert.equal(response.body.push, false);
 });
 
 test('auth mutations trust configured and same-origin requests only', async () => {
