@@ -63,7 +63,7 @@ VITE_API_URL=https://api.example.com npm run build
 
 `VITE_API_URL`, `VITE_ICE_SERVERS`, and `VITE_VAPID_PUBLIC_KEY` are baked into the bundle at build time. Set them in the hosting platform's build environment; editing a local `.env` does not affect deployed builds.
 
-Deploy `client/dist` to Vercel/Netlify/Cloudflare Pages. Add an SPA fallback (`/* → /index.html`).
+Deploy `client/dist` to Vercel/Netlify/Cloudflare Pages. Add an SPA fallback (`/* → /index.html`) so notification links such as `/app/c/:chatId` load the app instead of 404ing. Vercel configs are included at the repository root and in `client/`.
 
 API:
 
