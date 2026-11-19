@@ -1,0 +1,45 @@
+# Render Blueprint for the DuoConnect API.
+# Create a Blueprint from this file in the Render dashboard. Secret values are
+# declared with `sync: false` so they are entered in the dashboard and never
+# committed to the repository.
+services:
+  - type: web
+    name: duoconnect-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: '1'
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: CLIENT_ORIGIN
+        value: https://duo-connect-zeta.vercel.app
+      - key: DB_AUTO_MIGRATE
+        value: 'true'
+      - key: MAX_UPLOAD_MB
+        value: '10'
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: 'true'
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: VAPID_SUBJECT
+        value: https://duo-connect-zeta.vercel.app
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false

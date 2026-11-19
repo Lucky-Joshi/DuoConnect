@@ -53,6 +53,10 @@ The server checks for `client/dist/index.html` at boot. When present it:
 
 Recommended hosts: Render, Railway, Fly.io, a VPS, or any Node 20+ runtime with persistent disk (needed for local uploads/PGlite).
 
+`render.yaml` at the repository root is a Render Blueprint for the API service: `server/` as the root directory, `npm install` to build, `npm start` to run, and `/api/health` as the health check. Secrets are declared with `sync: false`, so their values are entered in the Render dashboard and never committed.
+
+For Vercel, `vercel.json` at the root configures a monorepo build (`client/dist`) with the SPA fallback. `client/vercel.json` is the equivalent for projects whose Root Directory is `client/`. Both set cache headers so `sw.js` updates immediately while hashed assets are cached long-term.
+
 ## Option 3 — Split client and API
 
 Client:
