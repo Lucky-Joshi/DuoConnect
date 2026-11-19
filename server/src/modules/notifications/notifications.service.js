@@ -1,6 +1,7 @@
 import { mapNotification } from '../../utils/serialize.js';
 import { emitToUser } from '../../realtime/events.js';
 import * as repo from './notifications.repository.js';
+import * as push from './push.service.js';
 
 const SETTING_BY_TYPE = {
   friend_request: 'friend_request_notifications',
@@ -10,6 +11,13 @@ const SETTING_BY_TYPE = {
   call_ended: 'call_notifications',
   system: null,
 };
+
+function destinationFor(type, chatId) {
+  if (chatId) return `/app/c/${chatId}`;
+  if (type === 'friend_request' || type === 'friend_accept') return '/app/friends?tab=requests';
+  if (type === 'missed_call' || type === 'call_ended') return '/app/calls';
+  return '/app/notifications';
+}
 
 export async function notify({
   userId,
@@ -32,6 +40,19 @@ export async function notify({
   const actor = await repo.findActor(actorId);
   const notification = mapNotification(row, actor);
   emitToUser(userId, 'notification:new', notification);
+
+  await push.sendToUser(
+    userId,
+    {
+      type,
+      title: payload.title ?? 'New activity on DuoConnect',
+      body: payload.body ?? '',
+      url: destinationFor(type, chatId),
+      tag: notification.id,
+      icon: '/icon-192.png',
+    },
+    { ttl: type === 'message' ? 86_400 : 43_200 },
+  );
   return notification;
 }
 

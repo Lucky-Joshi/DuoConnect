@@ -4,6 +4,7 @@ import { CALL_RING_TIMEOUT_MS } from '../../config/constants.js';
 import { emitToUser } from '../../realtime/events.js';
 import * as chatsRepo from '../chats/chats.repository.js';
 import { notify } from '../notifications/notifications.service.js';
+import * as push from '../notifications/push.service.js';
 import * as repo from './calls.repository.js';
 
 const ringTimers = new Map();
@@ -121,6 +122,20 @@ export async function startCall(userId, { chatId, kind }) {
 
   emitToUser(call.callee.id, 'call:incoming', call);
   emitToUser(call.caller.id, 'call:ringing', call);
+
+  // An offline callee has no socket to ring, so wake the device with Web Push.
+  await push.sendToUser(
+    call.callee.id,
+    {
+      type: 'incoming_call',
+      title: `Incoming ${call.kind} call`,
+      body: `${call.caller.displayName} is calling`,
+      url: `/app/c/${chatId}`,
+      tag: `call:${callId}`,
+      icon: '/icon-192.png',
+    },
+    { ttl: Math.ceil(CALL_RING_TIMEOUT_MS / 1000) },
+  );
 
   const timer = setTimeout(async () => {
     ringTimers.delete(callId);
@@ -249,6 +264,13 @@ export async function assertActiveParticipant(callId, userId) {
 export async function history(userId, limit = 50) {
   const rows = await repo.listCallHistory(userId, limit);
   return rows.map(mapCall);
+}
+
+/** Lets a client that missed the socket event recover a call still ringing. */
+export async function getIncomingCall(userId) {
+  const rows = await repo.findActiveForUser(userId);
+  const ringing = rows.find((row) => row.status === 'ringing' && row.callee_id === userId);
+  return ringing ? repo.getCallById(ringing.id) : null;
 }
 
 export async function reconcileStaleCalls() {

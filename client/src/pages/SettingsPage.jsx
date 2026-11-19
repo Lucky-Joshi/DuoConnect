@@ -39,6 +39,13 @@ import {
 import { Modal } from '../components/ui/Modal';
 import { api, unwrap } from '../lib/api';
 import { ACCENTS, MAX_AVATAR_MB, PRESENCE_VISIBILITY, THEMES, WALLPAPERS } from '../lib/constants';
+import {
+  disablePush,
+  enablePush,
+  hasPushSubscription,
+  pushPermission,
+  pushSupported,
+} from '../lib/push';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { cn, formatRelative, getErrorDetails, getErrorMessage, playChime } from '../lib/utils';
@@ -446,10 +453,21 @@ function NotificationsPanel() {
   const settings = useAuthStore((state) => state.settings);
   const updateSettings = useAuthStore((state) => state.updateSettings);
   const [saving, setSaving] = useState(null);
+  const [pushEnabledState, setPushEnabledState] = useState(false);
 
   const prefs = settings?.notifications ?? {};
   const desktopSupported = typeof window !== 'undefined' && 'Notification' in window;
   const permission = desktopSupported ? window.Notification.permission : 'denied';
+
+  useEffect(() => {
+    let active = true;
+    hasPushSubscription().then((subscribed) => {
+      if (active) setPushEnabledState(subscribed);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const save = async (key, value) => {
     if (saving) return;
@@ -479,6 +497,26 @@ function NotificationsPanel() {
       return;
     }
     await save('desktop', true);
+  };
+
+  const togglePush = async (next) => {
+    if (saving) return;
+    setSaving('push');
+    try {
+      if (next) {
+        await enablePush();
+        setPushEnabledState(true);
+        toast.success('Push notifications are on.');
+      } else {
+        await disablePush();
+        setPushEnabledState(false);
+        toast.success('Push notifications are off.');
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Push notifications could not be changed.'));
+    } finally {
+      setSaving(null);
+    }
   };
 
   return (
@@ -512,6 +550,19 @@ function NotificationsPanel() {
             checked={prefs.sounds !== false}
             disabled={Boolean(saving)}
             onChange={(value) => save('sounds', value)}
+          />
+          <Toggle
+            label="Push notifications"
+            description={
+              !pushSupported()
+                ? 'Requires a supported browser and a configured push key.'
+                : pushPermission() === 'denied'
+                  ? 'Blocked in your browser. Allow notifications in site settings first.'
+                  : 'Get messages and calls even when DuoConnect is closed. On iPhone, add the site to your Home Screen first.'
+            }
+            checked={pushEnabledState && pushPermission() === 'granted'}
+            disabled={Boolean(saving) || !pushSupported()}
+            onChange={togglePush}
           />
           <Toggle
             label="Desktop notifications"

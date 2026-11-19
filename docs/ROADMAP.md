@@ -68,7 +68,6 @@ DuoConnect is feature-complete for a one-to-one communication platform. This roa
 - Drag-and-drop uploads with progress
 - Notification sound preferences per conversation
 - Better offline queue with automatic resend
-- PWA install and background notification support
 
 ### Platform
 

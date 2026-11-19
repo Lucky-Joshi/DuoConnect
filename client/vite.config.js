@@ -31,7 +31,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.js',
     css: true,
-    // Unit tests must not depend on a developer's local VITE_API_URL.
-    env: { VITE_API_URL: '' },
+    // Unit tests must not depend on a developer's local VITE_API_URL/VAPID key.
+    env: { VITE_API_URL: '', VITE_VAPID_PUBLIC_KEY: '' },
   },
 });

@@ -74,6 +74,22 @@ The server reads `server/.env` (and `process.env`). Every value has a safe devel
 
 If Cloudinary is not configured, files are stored on disk and served from `/uploads`.
 
+### Web Push (VAPID)
+
+| Variable            | Default | Notes                                             |
+| ------------------- | ------- | ------------------------------------------------- |
+| `VAPID_SUBJECT`     | empty   | A `mailto:` or `https:` contact for push requests |
+| `VAPID_PUBLIC_KEY`  | empty   | Public key; also used by the client build         |
+| `VAPID_PRIVATE_KEY` | empty   | Secret — never commit it                          |
+
+All three are required. Generate a pair with:
+
+```bash
+cd server && npx web-push generate-vapid-keys
+```
+
+Copy the public key to `VITE_VAPID_PUBLIC_KEY` in the client environment, and the private key plus a contact subject to `server/.env`. When any value is empty, Web Push is disabled and the app falls back to in-app notifications.
+
 ## Client environment
 
 The client uses the Vite proxy in development, so no environment file is needed. For a split deployment:
@@ -83,6 +99,14 @@ VITE_API_URL=https://api.example.com
 ```
 
 Leave it empty for same-origin deploys where Express serves `client/dist`.
+
+### Web Push
+
+```env
+VITE_VAPID_PUBLIC_KEY=<VAPID_PUBLIC_KEY>
+```
+
+This is baked into the bundle at build time. Users enable push from **Settings → Notifications → Push notifications**; the browser asks for permission and registers a service worker at `/sw.js`. On iPhone, the site must be added to the Home Screen before Web Push works.
 
 ### WebRTC (ICE servers)
 
@@ -157,3 +181,7 @@ npm run dev
 **Calls connect on LAN but not across networks.** Add a TURN server to `VITE_ICE_SERVERS` and rebuild the client. STUN alone cannot traverse symmetric NATs.
 
 **Uploads fail on serverless hosts.** Local disk is ephemeral. Configure Cloudinary or mount persistent storage.
+
+**Push toggle is disabled.** The client needs `VITE_VAPID_PUBLIC_KEY` at build time and the server needs all three `VAPID_*` values. HTTPS is required outside `localhost`, and the browser must not have notifications blocked.
+
+**Notifications arrive twice.** The open tab shows toasts/desktop notifications, while Web Push targets browsers with no active socket. If you see both, reload the page so the subscription syncs.

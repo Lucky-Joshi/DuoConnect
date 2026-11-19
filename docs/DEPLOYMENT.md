@@ -29,6 +29,9 @@ JWT_ACCESS_SECRET=<32+ random bytes>
 COOKIE_SAME_SITE=lax                  # none for cross-site + HTTPS
 TRUST_PROXY=1
 UPLOAD_DIR=uploads
+VAPID_SUBJECT=https://duoconnect.example.com
+VAPID_PUBLIC_KEY=<public key>
+VAPID_PRIVATE_KEY=<private key>
 ```
 
 Do not run multiple API replicas against one PGlite directory. Use Postgres for any horizontally scaled deployment.
@@ -58,7 +61,7 @@ Client:
 VITE_API_URL=https://api.example.com npm run build
 ```
 
-Both `VITE_API_URL` and `VITE_ICE_SERVERS` are baked into the bundle at build time. Set them in the hosting platform's build environment; editing a local `.env` does not affect deployed builds.
+`VITE_API_URL`, `VITE_ICE_SERVERS`, and `VITE_VAPID_PUBLIC_KEY` are baked into the bundle at build time. Set them in the hosting platform's build environment; editing a local `.env` does not affect deployed builds.
 
 Deploy `client/dist` to Vercel/Netlify/Cloudflare Pages. Add an SPA fallback (`/* → /index.html`).
 
@@ -123,6 +126,22 @@ Leave it empty to use the default public STUN servers. Use a hosted TURN service
 
 Because media is peer-to-peer, bandwidth scales with calls, not with the API. The server only relays signaling.
 
+## Web Push
+
+Web Push lets the app notify users when the tab is closed. It needs a VAPID key pair:
+
+```bash
+cd server && npx web-push generate-vapid-keys
+```
+
+- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` on the API. The subject must be a `mailto:` or `https:` URL.
+- Set the same public key as `VITE_VAPID_PUBLIC_KEY` in the **client build** environment and rebuild.
+- Serve the site over HTTPS. `localhost` is the only HTTP exception.
+- The service worker is `client/public/sw.js` and is copied to `/sw.js` in the build. Subscriptions are stored in the `push_subscriptions` table.
+- Users opt in from Settings → Notifications. If any VAPID value is missing, the toggle is disabled and the app still shows in-app notifications.
+
+On iOS, Web Push requires the site to be installed to the Home Screen as a PWA (the manifest and icons are included).
+
 ## Security checklist
 
 - [ ] Strong `JWT_ACCESS_SECRET`
@@ -131,6 +150,7 @@ Because media is peer-to-peer, bandwidth scales with calls, not with the API. Th
 - [ ] Secure cookies (`lax` same-site or `none` cross-site)
 - [ ] `TRUST_PROXY` matches your proxy hops
 - [ ] TURN credentials restricted and rotated
+- [ ] VAPID private key kept secret; public key matches the client build
 - [ ] Upload volume persisted or Cloudinary configured
 - [ ] Database backups enabled
 - [ ] Rate limits reviewed for expected traffic

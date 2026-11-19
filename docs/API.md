@@ -229,12 +229,21 @@ Limits: 15 MB default (`MAX_UPLOAD_MB`), 5 MB avatars, 10 attachments per messag
 | POST   | `/api/notifications/:id/read`       | Yes  | Mark one read                |
 | DELETE | `/api/notifications/:id`            | Yes  | Remove one                   |
 
+### Web Push subscriptions
+
+| Method | Path                                  | Auth | Description                   |
+| ------ | ------------------------------------- | ---- | ----------------------------- |
+| GET    | `/api/notifications/push/public-key`  | Yes  | `{ publicKey, enabled }`      |
+| POST   | `/api/notifications/push/subscribe`   | Yes  | Register `{ endpoint, keys }` |
+| DELETE | `/api/notifications/push/unsubscribe` | Yes  | Remove `{ endpoint }`         |
+
 ## Calls
 
-| Method | Path                 | Auth | Description                       |
-| ------ | -------------------- | ---- | --------------------------------- |
-| GET    | `/api/calls?limit=`  | Yes  | Perspective-aware call history    |
-| GET    | `/api/calls/:callId` | Yes  | One call visible to a participant |
+| Method | Path                 | Auth | Description                             |
+| ------ | -------------------- | ---- | --------------------------------------- |
+| GET    | `/api/calls?limit=`  | Yes  | Perspective-aware call history          |
+| GET    | `/api/calls/active`  | Yes  | A call still ringing for you, or `null` |
+| GET    | `/api/calls/:callId` | Yes  | One call visible to a participant       |
 
 Calls begin and end over Socket.IO; these endpoints are read-only history.
 

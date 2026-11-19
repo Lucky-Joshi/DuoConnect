@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAppearance } from './hooks/useAppearance';
+import { api } from './lib/api';
+import { syncPushSubscription } from './lib/push';
 import { useAuthStore } from './stores/authStore';
+import { useCallStore } from './stores/callStore';
 import { Splash } from './components/layout/Splash';
 import { Toaster } from './components/ui/Toaster';
 import AppLayout from './components/layout/AppLayout';
@@ -29,12 +32,31 @@ function RequireAuth({ children }) {
 export default function App() {
   const status = useAuthStore((state) => state.status);
   const bootstrap = useAuthStore((state) => state.bootstrap);
+  const userId = useAuthStore((state) => state.user?.id);
 
   useAppearance();
 
   useEffect(() => {
     if (status === 'loading') bootstrap();
   }, [status, bootstrap]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return undefined;
+    syncPushSubscription();
+    let cancelled = false;
+    api
+      .get('/calls/active')
+      .then((response) => {
+        const call = response.data?.data;
+        if (!cancelled && call?.status === 'ringing' && call.callee?.id === userId) {
+          useCallStore.getState().handleIncoming(call);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [status, userId]);
 
   if (status === 'loading') return <Splash />;
 

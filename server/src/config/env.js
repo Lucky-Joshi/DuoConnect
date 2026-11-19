@@ -37,6 +37,10 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   CLOUDINARY_FOLDER: z.string().default('duoconnect'),
 
+  VAPID_SUBJECT: z.string().optional().default(''),
+  VAPID_PUBLIC_KEY: z.string().optional().default(''),
+  VAPID_PRIVATE_KEY: z.string().optional().default(''),
+
   LOG_LEVEL: z.string().default('info'),
 });
 
@@ -73,4 +77,5 @@ export const env = {
   cloudinaryEnabled: Boolean(
     raw.CLOUDINARY_CLOUD_NAME && raw.CLOUDINARY_API_KEY && raw.CLOUDINARY_API_SECRET,
   ),
+  vapidEnabled: Boolean(raw.VAPID_SUBJECT && raw.VAPID_PUBLIC_KEY && raw.VAPID_PRIVATE_KEY),
 };

@@ -25,7 +25,7 @@ DuoConnect is built as a portfolio-grade full-stack project: a React 19 single-p
 | People        | Global user search, connection cards, incoming/outgoing requests, blocked list, confirmation flows                                                          |
 | Profile       | Presence, shared context, message/call actions, connect/remove/block flows                                                                                  |
 | Calls         | Perspective-aware history, filters, duration summaries, one-click callback                                                                                  |
-| Notifications | Grouped activity, click-through routing, unread filtering, bulk actions                                                                                     |
+| Notifications | Grouped activity, click-through routing, unread filtering, bulk actions, Web Push for messages and calls when the tab is closed                             |
 | Settings      | Profile and avatar, appearance, notification preferences, privacy, password, sessions, account deletion                                                     |
 
 ### A look inside

@@ -13,6 +13,9 @@ process.env.JWT_ACCESS_SECRET = 'duoconnect-test-access-secret-123456';
 process.env.CLOUDINARY_CLOUD_NAME = '';
 process.env.CLOUDINARY_API_KEY = '';
 process.env.CLOUDINARY_API_SECRET = '';
+process.env.VAPID_SUBJECT = '';
+process.env.VAPID_PUBLIC_KEY = '';
+process.env.VAPID_PRIVATE_KEY = '';
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -408,6 +411,51 @@ test('uploads, attachment claiming, notifications, and calls history', async () 
   const calls = await client.get('/api/calls').set('Authorization', `Bearer ${a.token}`);
   assert.equal(calls.status, 200);
   assert.ok(Array.isArray(calls.body.data));
+});
+
+test('push subscription management and active-call lookup', async () => {
+  const a = await register('z');
+
+  const key = await client
+    .get('/api/notifications/push/public-key')
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(key.status, 200);
+  assert.equal(key.body.data.enabled, false);
+
+  const endpoint = 'https://fcm.googleapis.com/fcm/send/test-subscription';
+  const subscription = {
+    endpoint,
+    keys: { p256dh: 'test-p256dh-key', auth: 'test-auth-secret' },
+  };
+  const added = await client
+    .post('/api/notifications/push/subscribe')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send(subscription);
+  assert.equal(added.status, 200);
+  assert.equal(added.body.data.endpoint, endpoint);
+
+  const invalid = await client
+    .post('/api/notifications/push/subscribe')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ endpoint: 'not-a-url', keys: subscription.keys });
+  assert.equal(invalid.status, 422);
+
+  const active = await client.get('/api/calls/active').set('Authorization', `Bearer ${a.token}`);
+  assert.equal(active.status, 200);
+  assert.equal(active.body.data, null);
+
+  const removed = await client
+    .delete('/api/notifications/push/unsubscribe')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ endpoint });
+  assert.equal(removed.status, 200);
+  assert.equal(removed.body.data.success, true);
+
+  const removedAgain = await client
+    .delete('/api/notifications/push/unsubscribe')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ endpoint });
+  assert.equal(removedAgain.body.data.success, false);
 });
 
 test('blocking, unblocking, removing friends, and account deletion', async () => {

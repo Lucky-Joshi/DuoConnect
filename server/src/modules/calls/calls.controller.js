@@ -10,6 +10,10 @@ export const history = asyncHandler(async (req, res) => {
   res.json({ data: await service.history(req.user.id, limit) });
 });
 
+export const active = asyncHandler(async (req, res) => {
+  res.json({ data: await service.getIncomingCall(req.user.id) });
+});
+
 export const getCall = asyncHandler(async (req, res) => {
   const { callId } = z.object({ callId: uuidSchema }).parse(req.params);
   res.json({ data: await service.getCallForParticipant(callId, req.user.id) });
