@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import { Button, Logo, Spinner, TextField } from '../components/ui/Primitives';
 import { api } from '../lib/api';
+import { usernameCheckStatus } from '../lib/usernameCheck';
 import { useAuthStore } from '../stores/authStore';
 import { getErrorDetails, getErrorMessage } from '../lib/utils';
 import styles from './AuthPage.module.css';
@@ -103,14 +104,11 @@ export default function AuthPage({ mode = 'login' }) {
     setUsernameCheck({ state: 'checking', message: 'Checking…' });
     const timer = setTimeout(async () => {
       try {
-        const { data } = await api.get('/auth/username-available', {
+        const response = await api.get('/auth/username-available', {
           params: { username: normalized },
           signal: controller.signal,
         });
-        setUsernameCheck({
-          state: data?.available ? 'available' : 'taken',
-          message: data?.message ?? 'That username is taken.',
-        });
+        setUsernameCheck(usernameCheckStatus(response));
       } catch (error) {
         if (error?.name !== 'CanceledError' && error?.code !== 'ERR_CANCELED') {
           // A failed check must never block registration; the server still
