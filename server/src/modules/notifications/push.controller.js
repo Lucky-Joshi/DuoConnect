@@ -16,15 +16,7 @@ export const unsubscribe = asyncHandler(async (req, res) => {
 
 export const test = asyncHandler(async (req, res) => {
   const result = await service.sendTest(req.user.id);
-  if (!result.enabled) {
-    throw new AppError(400, 'PUSH_NOT_CONFIGURED', 'Web Push is not configured on the server.');
-  }
-  if (!result.sent) {
-    throw new AppError(
-      400,
-      'NO_PUSH_SUBSCRIPTION',
-      'No active push subscription found for this account.',
-    );
-  }
+  const problem = service.pushTestError(result);
+  if (problem) throw new AppError(400, problem.code, problem.message);
   res.json({ data: result });
 });

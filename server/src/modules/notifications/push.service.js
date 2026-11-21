@@ -24,7 +24,33 @@ export async function unsubscribe(userId, endpoint) {
   return { success: await repo.remove(userId, endpoint) };
 }
 
+/** Distinguish a missing subscription from a subscription that rejected delivery. */
+export function pushTestError({ enabled, subscriptions, sent }) {
+  if (!enabled) {
+    return {
+      code: 'PUSH_NOT_CONFIGURED',
+      message: 'Web Push is not configured on the server.',
+    };
+  }
+  if (!subscriptions) {
+    return {
+      code: 'NO_PUSH_SUBSCRIPTION',
+      message:
+        'No push subscription is registered for this account. Turn on Push notifications in Settings, then try again.',
+    };
+  }
+  if (!sent) {
+    return {
+      code: 'PUSH_DELIVERY_FAILED',
+      message:
+        'Your push subscription is registered, but delivery failed. Check your browser notification settings and try again.',
+    };
+  }
+  return null;
+}
+
 export async function sendTest(userId) {
+  const subscriptions = pushEnabled ? await repo.listByUser(userId) : [];
   const sent = await sendToUser(
     userId,
     {
@@ -37,7 +63,7 @@ export async function sendTest(userId) {
     },
     { force: true, ttl: 60 },
   );
-  return { enabled: pushEnabled, sent };
+  return { enabled: pushEnabled, subscriptions: subscriptions.length, sent };
 }
 
 /**

@@ -97,6 +97,9 @@ export async function syncPushSubscription() {
 
 /** Ask the server to deliver a test push to this browser. */
 export async function sendTestPush() {
+  // A local subscription can outlive its server-side row (account switch,
+  // expired row, or a missed sync). Re-register it before testing.
+  await syncPushSubscription();
   return api.post('/notifications/push/test');
 }
 
