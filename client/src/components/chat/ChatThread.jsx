@@ -24,6 +24,7 @@ import { Modal } from '../ui/Modal';
 import { MessageBubble } from './MessageBubble';
 import { Composer } from './Composer';
 import { api, unwrap } from '../../lib/api';
+import { conversationParticipant } from '../../lib/conversation';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
 import { useChatStore } from '../../stores/chatStore';
@@ -97,9 +98,10 @@ function DetailsDrawer({ open, onClose, chat, members, pins, items, onJump }) {
   const navigate = useNavigate();
   const openLightbox = useUiStore((state) => state.openLightbox);
   const updatePreferences = useChatStore((state) => state.updatePreferences);
+  const me = useAuthStore((state) => state.user);
   const other = chat?.otherUser;
   const title = other?.displayName ?? chat?.name ?? 'Conversation';
-  const participant = members[0] ?? other;
+  const participant = conversationParticipant(other, members, me?.id);
 
   const images = useMemo(
     () =>
