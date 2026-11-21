@@ -62,6 +62,7 @@ export function Avatar({
   onClick,
 }) {
   const pixels = typeof size === 'number' ? size : (avatarSizes[size] ?? 42);
+  const dot = Math.max(9, Math.round(pixels * 0.26));
   const name = user?.displayName || user?.username || 'Unknown';
   const image = user?.avatarUrl ? mediaUrl(user.avatarUrl) : null;
   const Tag = onClick ? 'button' : 'span';
@@ -86,7 +87,11 @@ export function Avatar({
       }}
       aria-label={onClick ? `Open ${name}'s profile` : undefined}
     >
-      {image ? <img src={image} alt="" loading="lazy" /> : <span>{initials(name)}</span>}
+      {image ? (
+        <img src={image} alt="" loading="lazy" />
+      ) : (
+        <span className={styles.avatarInitials}>{initials(name)}</span>
+      )}
       {showStatus ? (
         <span
           className={cn(
@@ -95,7 +100,7 @@ export function Avatar({
             away && styles.statusAway,
             !online && !away && styles.statusOffline,
           )}
-          style={{ width: Math.max(9, Math.round(pixels * 0.26)) }}
+          style={{ width: dot, height: dot }}
           role="img"
           aria-label={online ? 'Online' : away ? 'Away' : 'Offline'}
         />

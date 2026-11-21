@@ -53,7 +53,9 @@
   border-radius: inherit;
 }
 
-.avatar > span {
+/* Scope this to the initials wrapper. A bare `.avatar > span` also matches the
+   presence dot, whose `height: 100%` stretched it into a vertical pill. */
+.avatarInitials {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -85,7 +87,6 @@
   position: absolute;
   right: -1px;
   bottom: -1px;
-  height: auto;
   aspect-ratio: 1;
   border-radius: 50%;
   border: 2px solid var(--surface-solid);
