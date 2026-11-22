@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Refresh cookies are persistent for every session, and the client restores
   the session from the cookie on startup. Closing and reopening the PWA no
-  longer signs users out or flashes the landing/login screens first. (`7893146`)
+  longer signs users out or flashes the landing/login screens first. (`c9151ae`)
 
 ## [1.0.0] - 2026-11-22
 
