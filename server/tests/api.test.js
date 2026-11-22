@@ -37,8 +37,12 @@ function token(result) {
   return result.body.data.accessToken;
 }
 
+function refreshCookieEntry(result) {
+  return result.headers['set-cookie']?.find((entry) => entry.startsWith('dc_refresh=')) || '';
+}
+
 function cookieFor(result) {
-  const raw = result.headers['set-cookie']?.find((entry) => entry.startsWith('dc_refresh='));
+  const raw = refreshCookieEntry(result);
   return raw ? raw.split(';')[0] : null;
 }
 
@@ -127,6 +131,29 @@ test('registration validates input and never leaks secrets', async () => {
   assert.equal(JSON.stringify(a.response.body).includes('password'), false);
   assert.equal(JSON.stringify(a.response.body).includes('password_hash'), false);
   assert.ok(a.cookie, 'refresh cookie is set');
+});
+
+test('refresh cookie persists across app restarts without remember me', async () => {
+  const username = `t_${suffix}_pc`;
+  const registered = await client.post('/api/auth/register').send({
+    email: `${username}@example.test`,
+    username,
+    displayName: 'Persistent Cookie',
+    password: PASSWORD,
+    remember: false,
+  });
+  assert.equal(registered.status, 201, JSON.stringify(registered.body));
+
+  const registerCookie = refreshCookieEntry(registered);
+  assert.match(registerCookie, /Max-Age=\d+/, 'registration cookie must not be session-only');
+  assert.match(registerCookie, /Expires=/, 'registration cookie must have an expiry date');
+
+  const refreshed = await client.post('/api/auth/refresh').set('Cookie', cookieFor(registered));
+  assert.equal(refreshed.status, 200, JSON.stringify(refreshed.body));
+
+  const refreshCookie = refreshCookieEntry(refreshed);
+  assert.match(refreshCookie, /Max-Age=\d+/, 'rotated cookie must remain persistent');
+  assert.match(refreshCookie, /Expires=/, 'rotated cookie must have an expiry date');
 });
 
 test('username availability is checked live and case-insensitively', async () => {

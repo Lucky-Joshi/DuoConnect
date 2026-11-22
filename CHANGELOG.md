@@ -7,6 +7,14 @@ Commit hashes are included so every change can be traced back to its commit.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Refresh cookies are persistent for every session, and the client restores
+  the session from the cookie on startup. Closing and reopening the PWA no
+  longer signs users out or flashes the landing/login screens first. (`7893146`)
+
 ## [1.0.0] - 2026-11-22
 
 ### Added

@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '');
+const browserOrigin = typeof window === 'undefined' ? '' : window.location.origin;
+const SOCKET_URL = (import.meta.env.VITE_API_URL || browserOrigin).replace(/\/$/, '');
 
 let socket = null;
 let currentToken = null;

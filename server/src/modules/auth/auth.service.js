@@ -40,7 +40,7 @@ async function issueSession(row, { remember = false, userAgent, ip, familyId = n
     ...payload,
     accessToken: signAccessToken(payload.user),
     refreshToken: token,
-    refreshMaxAge: remember ? days * 24 * 60 * 60 * 1000 : null,
+    refreshMaxAge: days * 24 * 60 * 60 * 1000,
     expiresAt,
   };
 }
@@ -176,7 +176,7 @@ export async function refresh(rawToken, meta = {}) {
     ...toAuthPayload(row),
     accessToken: signAccessToken(row),
     refreshToken: token,
-    refreshMaxAge: remember ? days * 24 * 60 * 60 * 1000 : null,
+    refreshMaxAge: days * 24 * 60 * 60 * 1000,
   };
 }
 

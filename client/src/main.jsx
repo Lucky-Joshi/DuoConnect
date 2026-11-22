@@ -20,6 +20,11 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   });
 }
 
+// The refresh cookie is authoritative, so restore the session on every launch.
+// The localStorage hint only prevents a public landing flash; it must never be
+// required to discover a still-valid session.
+useAuthStore.getState().bootstrap();
+
 const root = document.getElementById('root');
 const renderApp = () => (
   <StrictMode>

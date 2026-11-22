@@ -41,6 +41,7 @@ export default function AuthArea() {
   const status = useAuthStore((state) => state.status);
   const bootstrap = useAuthStore((state) => state.bootstrap);
   const userId = useAuthStore((state) => state.user?.id);
+  const { pathname } = useLocation();
 
   useAppearance();
 
@@ -66,8 +67,10 @@ export default function AuthArea() {
     };
   }, [status, userId]);
 
-  // A stale hint can mount this shell on "/" while the session is still resolving.
-  if (status === 'loading' && !hasAuthHint()) return <LandingPage />;
+  // Only the public root keeps its prerendered landing during bootstrap. Every
+  // other route waits on a splash so signed-in users never see the login form.
+  if (status === 'loading' && pathname === '/' && !hasAuthHint()) return <LandingPage />;
+  if (status === 'loading') return <Splash />;
 
   return (
     <Suspense fallback={<Splash />}>
