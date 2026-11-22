@@ -10,6 +10,7 @@ import {
   Mic,
   Paperclip,
   Pencil,
+  Plus,
   Smile,
   Square,
   Sticker,
@@ -20,7 +21,6 @@ import {
 import toast from 'react-hot-toast';
 import { Spinner } from '../ui/Primitives';
 import { useChatStore } from '../../stores/chatStore';
-import { useAuthStore } from '../../stores/authStore';
 import { api, unwrap } from '../../lib/api';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { MAX_FILE_MB, MAX_MESSAGE_LENGTH } from '../../lib/constants';
@@ -85,16 +85,13 @@ export function Composer({
   const stopTyping = useChatStore((state) => state.stopTyping);
   const sendMessage = useChatStore((state) => state.sendMessage);
   const editMessage = useChatStore((state) => state.editMessage);
-  const me = useAuthStore((state) => state.user);
 
   const [staged, setStaged] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [stickerOpen, setStickerOpen] = useState(false);
-  const [gifOpen, setGifOpen] = useState(false);
-  const [formatOpen, setFormatOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [picker, setPicker] = useState(null);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -103,10 +100,10 @@ export function Composer({
   const imageRef = useRef(null);
   const fileRef = useRef(null);
   const emojiRef = useClickOutside(() => setEmojiOpen(false), emojiOpen);
-  const attachRef = useClickOutside(() => setAttachOpen(false), attachOpen);
-  const stickerRef = useClickOutside(() => setStickerOpen(false), stickerOpen);
-  const gifRef = useClickOutside(() => setGifOpen(false), gifOpen);
-  const formatRef = useClickOutside(() => setFormatOpen(false), formatOpen);
+  const moreRef = useClickOutside(() => {
+    setMoreOpen(false);
+    setPicker(null);
+  }, moreOpen);
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -115,8 +112,8 @@ export function Composer({
   const timerRef = useRef(null);
   const startedRef = useRef(0);
 
-  const canSend =
-    (value.trim().length > 0 || staged.length > 0) && !sending && !uploading && !voiceBusy;
+  const hasContent = value.trim().length > 0 || staged.length > 0;
+  const canSend = hasContent && !sending && !uploading && !voiceBusy;
 
   useEffect(() => {
     if (editing) {
@@ -178,7 +175,8 @@ export function Composer({
     const next = `${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`;
     setDraft(chatId, next);
     if (next.trim()) notifyTyping(chatId);
-    setFormatOpen(false);
+    setMoreOpen(false);
+    setPicker(null);
     requestAnimationFrame(() => {
       input?.focus();
       const selectionStart = start + before.length;
@@ -233,7 +231,8 @@ export function Composer({
 
   const sendSticker = async (sticker) => {
     if (disabled || editing || sending || uploading) return;
-    setStickerOpen(false);
+    setMoreOpen(false);
+    setPicker(null);
     setSending(true);
     try {
       await sendMessage(chatId, {
@@ -255,7 +254,8 @@ export function Composer({
 
   const sendGif = async (gif) => {
     if (disabled || editing || sending || uploading) return;
-    setGifOpen(false);
+    setMoreOpen(false);
+    setPicker(null);
     setSending(true);
     try {
       await sendMessage(chatId, {
@@ -507,29 +507,28 @@ export function Composer({
       ) : (
         <div className={cn(styles.composer, editing && styles.composerEditing)}>
           <div className={styles.tools}>
-            <div className={styles.popoverWrap} ref={attachRef}>
+            <div className={styles.popoverWrap} ref={moreRef}>
               <button
                 type="button"
-                className={styles.tool}
+                className={cn(styles.tool, moreOpen && styles.toolActive)}
                 onClick={() => {
-                  setAttachOpen((open) => !open);
+                  setMoreOpen((open) => !open);
+                  setPicker(null);
                   setEmojiOpen(false);
-                  setStickerOpen(false);
-                  setGifOpen(false);
-                  setFormatOpen(false);
                 }}
-                aria-label="Add an attachment"
-                aria-expanded={attachOpen}
-                disabled={uploading || sending}
+                aria-label="More message options"
+                aria-expanded={moreOpen}
+                disabled={sending || uploading || disabled}
               >
-                {uploading ? <Spinner size={17} /> : <Paperclip size={18} />}
+                {uploading ? <Spinner size={17} /> : <Plus size={19} />}
               </button>
-              {attachOpen ? (
-                <div className={styles.attachMenu}>
+              {moreOpen ? (
+                <div className={styles.moreMenu} role="dialog" aria-label="More message options">
                   <button
                     type="button"
+                    className={styles.menuItem}
                     onClick={() => {
-                      setAttachOpen(false);
+                      setMoreOpen(false);
                       imageRef.current?.click();
                     }}
                   >
@@ -541,8 +540,9 @@ export function Composer({
                   </button>
                   <button
                     type="button"
+                    className={styles.menuItem}
                     onClick={() => {
-                      setAttachOpen(false);
+                      setMoreOpen(false);
                       fileRef.current?.click();
                     }}
                   >
@@ -552,161 +552,141 @@ export function Composer({
                       <small>PDF, docs, audio, video</small>
                     </span>
                   </button>
-                </div>
-              ) : null}
-            </div>
 
-            <div className={styles.popoverWrap} ref={formatRef}>
-              <button
-                type="button"
-                className={cn(styles.tool, formatOpen && styles.toolActive)}
-                onClick={() => {
-                  setFormatOpen((open) => !open);
-                  setAttachOpen(false);
-                  setStickerOpen(false);
-                  setGifOpen(false);
-                  setEmojiOpen(false);
-                }}
-                aria-label="Format text"
-                aria-expanded={formatOpen}
-              >
-                <span className={styles.writeGlyph}>Aa</span>
-              </button>
-              {formatOpen ? (
-                <div className={styles.formatMenu} role="menu" aria-label="Text formatting">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    title="Bold"
-                    aria-label="Bold"
-                    onClick={() => insertMarkdown('**', '**', 'bold text')}
-                  >
-                    <Bold size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    title="Italic"
-                    aria-label="Italic"
-                    onClick={() => insertMarkdown('*', '*', 'italic text')}
-                  >
-                    <Italic size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    title="Strikethrough"
-                    aria-label="Strikethrough"
-                    onClick={() => insertMarkdown('~~', '~~', 'struck text')}
-                  >
-                    <Strikethrough size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    title="Inline code"
-                    aria-label="Inline code"
-                    onClick={() => insertMarkdown('`', '`', 'code')}
-                  >
-                    <Code size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={styles.formatWide}
-                    onClick={() => insertMarkdown('```\n', '\n```', 'code block')}
-                  >
-                    <Code size={15} /> Code block
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                  <div className={styles.menuDivider} />
 
-            <div className={styles.popoverWrap} ref={stickerRef}>
-              <button
-                type="button"
-                className={cn(styles.tool, stickerOpen && styles.toolActive)}
-                onClick={() => {
-                  setStickerOpen((open) => !open);
-                  setAttachOpen(false);
-                  setEmojiOpen(false);
-                  setGifOpen(false);
-                  setFormatOpen(false);
-                }}
-                aria-label="Choose a sticker"
-                aria-expanded={stickerOpen}
-                disabled={editing || sending || uploading || voiceBusy || disabled}
-              >
-                <Sticker size={18} />
-              </button>
-              {stickerOpen ? (
-                <div className={styles.stickerPicker} role="dialog" aria-label="Stickers">
-                  <div className={styles.stickerHeader}>
-                    <strong>Stickers</strong>
-                    <span>Pick one to send instantly</span>
-                  </div>
-                  <div className={styles.stickerGrid}>
-                    {STICKERS.map((sticker) => (
+                  <div className={styles.menuSection}>
+                    <span className={styles.menuLabel}>Quick send</span>
+                    <div className={styles.quickRow}>
                       <button
-                        key={sticker.id}
                         type="button"
-                        className={styles.stickerOption}
-                        title={sticker.label}
-                        aria-label={`Send ${sticker.label} sticker`}
-                        onClick={() => sendSticker(sticker)}
-                        disabled={sending || disabled}
+                        className={cn(
+                          styles.quickButton,
+                          picker === 'sticker' && styles.quickButtonActive,
+                        )}
+                        aria-label="Choose a sticker"
+                        aria-pressed={picker === 'sticker'}
+                        disabled={editing || sending || uploading || voiceBusy || disabled}
+                        onClick={() =>
+                          setPicker((current) => (current === 'sticker' ? null : 'sticker'))
+                        }
                       >
-                        <span
-                          className={styles.stickerTile}
-                          data-tint={sticker.tint}
-                          aria-hidden="true"
-                        >
-                          {sticker.emoji}
-                        </span>
+                        <Sticker size={15} /> Sticker
                       </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className={styles.popoverWrap} ref={gifRef}>
-              <button
-                type="button"
-                className={cn(styles.tool, gifOpen && styles.toolActive)}
-                onClick={() => {
-                  setGifOpen((open) => !open);
-                  setAttachOpen(false);
-                  setStickerOpen(false);
-                  setEmojiOpen(false);
-                  setFormatOpen(false);
-                }}
-                aria-label="Choose a GIF"
-                aria-expanded={gifOpen}
-                disabled={editing || sending || uploading || voiceBusy || disabled}
-              >
-                <Film size={18} />
-              </button>
-              {gifOpen ? (
-                <div className={styles.stickerPicker} role="dialog" aria-label="GIFs">
-                  <div className={styles.stickerHeader}>
-                    <strong>GIFs</strong>
-                    <span>Built-in reactions, no search needed</span>
-                  </div>
-                  <div className={styles.gifGrid}>
-                    {GIFS.map((gif) => (
                       <button
-                        key={gif.id}
                         type="button"
-                        className={styles.gifOption}
-                        title={gif.title}
-                        aria-label={`Send ${gif.title} GIF`}
-                        onClick={() => sendGif(gif)}
-                        disabled={sending || disabled}
+                        className={cn(
+                          styles.quickButton,
+                          picker === 'gif' && styles.quickButtonActive,
+                        )}
+                        aria-label="Choose a GIF"
+                        aria-pressed={picker === 'gif'}
+                        disabled={editing || sending || uploading || voiceBusy || disabled}
+                        onClick={() => setPicker((current) => (current === 'gif' ? null : 'gif'))}
                       >
-                        <img src={gif.src} alt="" loading="lazy" />
+                        <Film size={15} /> GIF
                       </button>
-                    ))}
+                    </div>
+
+                    {picker === 'sticker' ? (
+                      <div className={styles.pickerGrid} role="group" aria-label="Stickers">
+                        {STICKERS.map((sticker) => (
+                          <button
+                            key={sticker.id}
+                            type="button"
+                            className={styles.stickerOption}
+                            title={sticker.label}
+                            aria-label={`Send ${sticker.label} sticker`}
+                            onClick={() => sendSticker(sticker)}
+                            disabled={sending || disabled}
+                          >
+                            <span
+                              className={styles.stickerTile}
+                              data-tint={sticker.tint}
+                              aria-hidden="true"
+                            >
+                              {sticker.emoji}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {picker === 'gif' ? (
+                      <div className={styles.pickerGrid} role="group" aria-label="GIFs">
+                        {GIFS.map((gif) => (
+                          <button
+                            key={gif.id}
+                            type="button"
+                            className={styles.gifOption}
+                            title={gif.title}
+                            aria-label={`Send ${gif.title} GIF`}
+                            onClick={() => sendGif(gif)}
+                            disabled={sending || disabled}
+                          >
+                            <img src={gif.src} alt="" loading="lazy" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.menuDivider} />
+
+                  <div className={styles.menuSection}>
+                    <span className={styles.menuLabel}>Format text</span>
+                    <div className={styles.formatRow} role="group" aria-label="Text formatting">
+                      <button
+                        type="button"
+                        className={styles.formatButton}
+                        title="Bold"
+                        aria-label="Bold"
+                        disabled={sending || disabled}
+                        onClick={() => insertMarkdown('**', '**', 'bold text')}
+                      >
+                        <Bold size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.formatButton}
+                        title="Italic"
+                        aria-label="Italic"
+                        disabled={sending || disabled}
+                        onClick={() => insertMarkdown('*', '*', 'italic text')}
+                      >
+                        <Italic size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.formatButton}
+                        title="Strikethrough"
+                        aria-label="Strikethrough"
+                        disabled={sending || disabled}
+                        onClick={() => insertMarkdown('~~', '~~', 'struck text')}
+                      >
+                        <Strikethrough size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.formatButton}
+                        title="Inline code"
+                        aria-label="Inline code"
+                        disabled={sending || disabled}
+                        onClick={() => insertMarkdown('`', '`', 'code')}
+                      >
+                        <Code size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.formatButton}
+                        title="Code block"
+                        aria-label="Code block"
+                        disabled={sending || disabled}
+                        onClick={() => insertMarkdown('```\n', '\n```', 'code block')}
+                      >
+                        <Code size={15} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -728,6 +708,7 @@ export function Composer({
             maxLength={MAX_MESSAGE_LENGTH}
             disabled={sending || disabled}
             aria-label="Message"
+            title="Enter to send · Shift + Enter for a new line"
           />
 
           <div className={styles.actions}>
@@ -742,10 +723,8 @@ export function Composer({
                 className={cn(styles.tool, emojiOpen && styles.toolActive)}
                 onClick={() => {
                   setEmojiOpen((open) => !open);
-                  setAttachOpen(false);
-                  setStickerOpen(false);
-                  setGifOpen(false);
-                  setFormatOpen(false);
+                  setMoreOpen(false);
+                  setPicker(null);
                 }}
                 aria-label="Choose an emoji"
                 aria-expanded={emojiOpen}
@@ -766,25 +745,27 @@ export function Composer({
               ) : null}
             </div>
 
-            <button
-              type="button"
-              className={styles.tool}
-              onClick={startRecording}
-              aria-label="Record a voice note"
-              disabled={sending || uploading || voiceBusy}
-            >
-              {voiceBusy ? <Spinner size={17} /> : <Mic size={18} />}
-            </button>
-
-            <button
-              type="button"
-              className={cn(styles.send, canSend && styles.sendReady)}
-              onClick={submit}
-              disabled={!canSend || disabled}
-              aria-label={editing ? 'Save changes' : 'Send message'}
-            >
-              {sending ? <Spinner size={16} /> : <ArrowUp size={18} strokeWidth={2.4} />}
-            </button>
+            {hasContent || editing ? (
+              <button
+                type="button"
+                className={cn(styles.send, canSend && styles.sendReady)}
+                onClick={submit}
+                disabled={!canSend || disabled}
+                aria-label={editing ? 'Save changes' : 'Send message'}
+              >
+                {sending ? <Spinner size={16} /> : <ArrowUp size={18} strokeWidth={2.4} />}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.tool}
+                onClick={startRecording}
+                aria-label="Record a voice note"
+                disabled={uploading || voiceBusy || disabled}
+              >
+                {voiceBusy ? <Spinner size={17} /> : <Mic size={18} />}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -811,13 +792,6 @@ export function Composer({
           event.target.value = '';
         }}
       />
-
-      <div className={styles.hint}>
-        <span>
-          <kbd>Enter</kbd> to send · <kbd>Shift</kbd> + <kbd>Enter</kbd> for a new line
-        </span>
-        <span className={styles.identity}>Signed in as @{me?.username}</span>
-      </div>
     </div>
   );
 }

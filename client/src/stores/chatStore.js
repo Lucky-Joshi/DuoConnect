@@ -556,7 +556,7 @@ export const useChatStore = create((set, get) => ({
 
   toggleReaction: async (messageId, emoji) => {
     try {
-      const message = unwrap(await api.post(`/api/messages/${messageId}/reactions`, { emoji }));
+      const message = unwrap(await api.post(`/messages/${messageId}/reactions`, { emoji }));
       get().applyReaction({ messageId, reactions: message.reactions ?? [] });
       return message;
     } catch (error) {
