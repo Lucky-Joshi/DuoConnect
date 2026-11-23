@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useCallStore } from '../stores/callStore';
 import { useChatStore } from '../stores/chatStore';
 import { useFriendsStore } from '../stores/friendsStore';
+import { useGameStore } from '../stores/gameStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { usePresenceStore } from '../stores/presenceStore';
 
@@ -47,6 +48,10 @@ export function useSocketBridge() {
         .catch(() => {});
       if (connectedBefore) {
         useChatStore
+          .getState()
+          .refreshActive()
+          .catch(() => {});
+        useGameStore
           .getState()
           .refreshActive()
           .catch(() => {});
@@ -217,6 +222,10 @@ export function useSocketBridge() {
         .getState()
         .handleEnded(call, call?.endReason === 'connection_failed' ? 'connection_failed' : 'ended'),
     );
+
+    on('game:updated', (game) => {
+      useGameStore.getState().upsertGame(game);
+    });
 
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') emitEvent('presence:set', { status: 'away' });

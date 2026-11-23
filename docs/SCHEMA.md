@@ -21,6 +21,8 @@ All primary keys are UUIDs (`gen_random_uuid()`), timestamps are `timestamptz`, 
 | `message_receipts`  | Per-recipient delivered/read timestamps                |
 | `message_reactions` | Per-message emoji reactions by user                    |
 | `pinned_messages`   | Pins per chat                                          |
+| `game_sessions`     | In-chat Tic-Tac-Toe / Draw & Guess sessions            |
+| `game_events`       | Append-only game action/event log                      |
 | `calls`             | Call history and lifecycle state                       |
 | `notifications`     | Activity feed entries                                  |
 | `refresh_tokens`    | Hashed rotating refresh tokens with family lineage     |
@@ -82,17 +84,17 @@ Composite PK `(chat_id, user_id)`; role, `joined_at`, `last_read_seq`, `is_pinne
 
 ## messages
 
-| Column                             | Notes                                                            |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| `seq`                              | Generated identity, unique; used for pagination and read cursors |
-| `chat_id`, `sender_id`             | Required                                                         |
-| `type`                             | `text \| image \| file \| voice \| sticker \| gif \| system`     |
-| `body`                             | Nullable for media; curated sticker/GIF id for those types       |
-| `reply_to_id`, `forwarded_from_id` | Self-references, `ON DELETE SET NULL`                            |
-| `metadata`                         | jsonb for extras                                                 |
-| `search_vector`                    | Generated `tsvector` from body                                   |
-| `edited_at`, `deleted_at`          | Edit/delete tombstones                                           |
-| `created_at`                       |                                                                  |
+| Column                             | Notes                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `seq`                              | Generated identity, unique; used for pagination and read cursors                                |
+| `chat_id`, `sender_id`             | Required                                                                                        |
+| `type`                             | `text \| image \| file \| voice \| sticker \| gif \| game \| system`                            |
+| `body`                             | Nullable for media; curated sticker/GIF id for those types; game label for game invites/results |
+| `reply_to_id`, `forwarded_from_id` | Self-references, `ON DELETE SET NULL`                                                           |
+| `metadata`                         | jsonb for extras                                                                                |
+| `search_vector`                    | Generated `tsvector` from body                                                                  |
+| `edited_at`, `deleted_at`          | Edit/delete tombstones                                                                          |
+| `created_at`                       |                                                                                                 |
 
 Indexes: `(chat_id, seq DESC)` for history, `(sender_id, created_at DESC)`, and a GIN index on `search_vector`.
 
@@ -115,6 +117,28 @@ Composite PK `(message_id, user_id, emoji)` lets each person add several distinc
 ## pinned_messages
 
 Composite PK `(chat_id, message_id)`, `pinned_by`, `created_at`. Unpinning deletes the row.
+
+## game_sessions
+
+| Column                                               | Notes                                                                           |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `id`                                                 | uuid PK                                                                         |
+| `chat_id`                                            | FK → chats, cascade delete                                                      |
+| `type`                                               | `tictactoe \| drawguess`                                                        |
+| `status`                                             | `invited \| active \| completed \| declined \| cancelled \| expired`            |
+| `inviter_id`                                         | FK → users                                                                      |
+| `invitee_id`                                         | FK → users                                                                      |
+| `winner_id`                                          | Nullable FK → users                                                             |
+| `result`                                             | `win \| draw \| declined \| cancelled \| expired`                               |
+| `state`                                              | jsonb; authoritative game state (board, draw strokes, scores, round/timer data) |
+| `invite_message_id`                                  | Nullable FK → messages; chat card/message for this game                         |
+| `created_at`, `updated_at`, `started_at`, `ended_at` | Timestamps                                                                      |
+
+Indexes: `(chat_id, created_at DESC)`, `(status, updated_at DESC)`, `(invitee_id, status, created_at DESC)`, `(inviter_id, invitee_id, created_at DESC)`, and a partial unique index on `(chat_id)` where status is `invited` or `active` to prevent concurrent active games in one chat.
+
+## game_events
+
+Append-only log of game actions. Columns: `id`, `game_id` FK cascade, nullable `user_id`, `type`, jsonb `payload`, `created_at`. Indexed by `(game_id, created_at ASC)`.
 
 ## calls
 

@@ -9,6 +9,7 @@ const SETTING_BY_TYPE = {
   message: 'message_notifications',
   missed_call: 'call_notifications',
   call_ended: 'call_notifications',
+  game_invite: 'message_notifications',
   system: null,
 };
 

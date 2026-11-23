@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- In-chat games for direct conversations: Tic-Tac-Toe and Draw & Guess. Players
+  can invite from the composer Activities menu, accept or decline, play live with
+  Socket.IO updates, and see match history and stats in chat details. Draw & Guess
+  includes drawing tools, word categories, difficulty, rounds, live guesses, and
+  round reveal/score tracking. Game sessions and events are persisted in
+  Postgres/Supabase.
+
 ### Fixed
 
 - Refresh cookies are persistent for every session, and the client restores

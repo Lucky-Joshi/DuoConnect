@@ -112,6 +112,10 @@ export function messagePreview(message) {
     const gif = getGif(message.body);
     return gif.unknown ? 'GIF' : `GIF: ${gif.title}`;
   }
+  if (message.type === 'game') {
+    const label = message.metadata?.gameType === 'drawguess' ? 'Draw & Guess' : 'Tic-Tac-Toe';
+    return message.metadata?.summary || `${label} game`;
+  }
   return message.body?.slice(0, 160) || '';
 }
 

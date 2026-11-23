@@ -7,8 +7,10 @@ import {
   Clock3,
   Copy,
   CornerUpRight,
+  Dices,
   Download,
   FileText,
+  Gamepad2,
   Link2,
   MoreVertical,
   Pause,
@@ -24,6 +26,7 @@ import {
 import toast from 'react-hot-toast';
 import { Avatar, Spinner } from '../ui/Primitives';
 import { useUiStore } from '../../stores/uiStore';
+import { useGameStore } from '../../stores/gameStore';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import {
   cn,
@@ -111,6 +114,114 @@ function LinkCard({ message }) {
         <small>{preview?.siteName ?? hostname}</small>
       </span>
     </a>
+  );
+}
+
+function GameCard({ message, currentUserId }) {
+  const gameStore = useGameStore();
+  const meta = message.metadata || {};
+  const gameId = meta.gameId;
+  const active = useGameStore((s) => (gameId ? s.activeByChat[message.chatId] : null));
+  const game = active?.id === gameId ? active : null;
+  const status = game?.status || meta.status || 'invited';
+  const type = game?.type || meta.gameType || 'tictactoe';
+  const title = type === 'drawguess' ? 'Draw & Guess' : 'Tic-Tac-Toe';
+  const isInvitee = currentUserId && meta.inviteeId === currentUserId;
+  const isInviter = currentUserId && meta.inviterId === currentUserId;
+  const canAccept = status === 'invited' && isInvitee;
+  const canDecline = status === 'invited' && isInvitee;
+  const canPlayAgain = ['completed', 'declined', 'cancelled', 'expired'].includes(status);
+  const [busy, setBusy] = useState(null);
+
+  const run = async (key, fn, fallback) => {
+    setBusy(key);
+    try {
+      await fn();
+    } catch (error) {
+      toast.error(error?.message || fallback);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const open = () => {
+    if (gameId) gameStore.setOpenGame(gameId);
+  };
+
+  const winnerLabel =
+    status === 'completed'
+      ? game?.winnerId === currentUserId || meta.winnerId === currentUserId
+        ? 'You won'
+        : meta.result === 'draw' || game?.result === 'draw'
+          ? 'Draw'
+          : 'Winner decided'
+      : status === 'declined'
+        ? 'Declined'
+        : status === 'cancelled'
+          ? 'Cancelled'
+          : status === 'active'
+            ? 'In progress'
+            : 'Invitation';
+
+  return (
+    <div className={styles.gameCard}>
+      <div className={styles.gameTop}>
+        <span className={styles.gameIcon}>
+          {type === 'drawguess' ? <Dices size={18} /> : <Gamepad2 size={18} />}
+        </span>
+        <div className={styles.gameCopy}>
+          <strong>{title}</strong>
+          <span>{meta.summary || winnerLabel}</span>
+        </div>
+        <span className={cn(styles.gameStatus, styles[`gameStatus_${status}`])}>{winnerLabel}</span>
+      </div>
+
+      <div className={styles.gameActions}>
+        {canAccept ? (
+          <button
+            type="button"
+            className={styles.gameBtnPrimary}
+            disabled={busy !== null}
+            onClick={() => run('accept', () => gameStore.accept(gameId), 'Could not accept invite')}
+          >
+            {busy === 'accept' ? <Spinner size={14} /> : 'Accept'}
+          </button>
+        ) : null}
+        {canDecline ? (
+          <button
+            type="button"
+            className={styles.gameBtn}
+            disabled={busy !== null}
+            onClick={() =>
+              run('decline', () => gameStore.decline(gameId), 'Could not decline invite')
+            }
+          >
+            {busy === 'decline' ? <Spinner size={14} /> : 'Decline'}
+          </button>
+        ) : null}
+        {gameId && status !== 'declined' ? (
+          <button type="button" className={styles.gameBtn} onClick={open}>
+            Open
+          </button>
+        ) : null}
+        {canPlayAgain && (isInvitee || isInviter) && gameId ? (
+          <button
+            type="button"
+            className={styles.gameBtn}
+            disabled={busy !== null}
+            onClick={() => run('again', () => gameStore.playAgain(gameId), 'Could not start game')}
+          >
+            {busy === 'again' ? (
+              <Spinner size={14} />
+            ) : (
+              <>
+                <RotateCcw size={13} /> Play again
+              </>
+            )}
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -452,6 +563,7 @@ export function MessageBubble({
             deleted && styles.bubbleDeleted,
             message.type === 'sticker' && styles.bubbleSticker,
             message.type === 'gif' && styles.bubbleGif,
+            message.type === 'game' && styles.bubbleGame,
             pending && styles.bubblePending,
             failed && styles.bubbleFailed,
           )}
@@ -490,7 +602,14 @@ export function MessageBubble({
 
               {message.type === 'gif' ? <Gif message={message} /> : null}
 
-              {message.type !== 'sticker' && message.type !== 'gif' && message.body ? (
+              {message.type === 'game' ? (
+                <GameCard message={message} currentUserId={currentUserId} />
+              ) : null}
+
+              {message.type !== 'sticker' &&
+              message.type !== 'gif' &&
+              message.type !== 'game' &&
+              message.body ? (
                 <TextBody text={message.body} />
               ) : null}
 
@@ -501,6 +620,7 @@ export function MessageBubble({
               !voice &&
               message.type !== 'sticker' &&
               message.type !== 'gif' &&
+              message.type !== 'game' &&
               !message.body ? (
                 <p className={styles.emptyBody}>Empty message</p>
               ) : null}
@@ -583,7 +703,7 @@ export function MessageBubble({
                       </button>
                     )
                   ) : null}
-                  {!deleted ? (
+                  {!deleted && message.type !== 'game' ? (
                     <button
                       type="button"
                       role="menuitem"

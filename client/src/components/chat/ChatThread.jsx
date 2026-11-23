@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  Gamepad2,
   Images,
   Info,
   MessageSquare,
@@ -13,6 +14,7 @@ import {
   Pin,
   PinOff,
   Search,
+  Trophy,
   UserRound,
   Users,
   Video,
@@ -23,11 +25,13 @@ import { Avatar, Button, EmptyState, IconButton, Skeleton, Spinner } from '../ui
 import { Modal } from '../ui/Modal';
 import { MessageBubble } from './MessageBubble';
 import { Composer } from './Composer';
+import { GamePanel } from './GamePanel';
 import { api, unwrap } from '../../lib/api';
 import { conversationParticipant } from '../../lib/conversation';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
 import { useChatStore } from '../../stores/chatStore';
+import { useGameStore } from '../../stores/gameStore';
 import { usePresenceStore } from '../../stores/presenceStore';
 import { useUiStore } from '../../stores/uiStore';
 import {
@@ -94,7 +98,17 @@ function typingLabel(typing) {
   return 'Several people are typing…';
 }
 
-function DetailsDrawer({ open, onClose, chat, members, pins, items, onJump }) {
+function DetailsDrawer({
+  open,
+  onClose,
+  chat,
+  members,
+  pins,
+  items,
+  onJump,
+  history = [],
+  gameStats = [],
+}) {
   const navigate = useNavigate();
   const openLightbox = useUiStore((state) => state.openLightbox);
   const updatePreferences = useChatStore((state) => state.updatePreferences);
@@ -322,6 +336,61 @@ function DetailsDrawer({ open, onClose, chat, members, pins, items, onJump }) {
                   <p className={styles.drawerEmpty}>Pin a message to keep it close at hand.</p>
                 )}
               </section>
+
+              <section className={styles.drawerSection}>
+                <span className={styles.drawerLabel}>
+                  <Trophy size={13} /> Games
+                </span>
+                {gameStats.length ? (
+                  <div className={styles.gameStatsGrid}>
+                    {gameStats.map((stat) => (
+                      <div key={stat.type} className={styles.gameStatCard}>
+                        <strong>
+                          {stat.type === 'drawguess' ? 'Draw & Guess' : 'Tic-Tac-Toe'}
+                        </strong>
+                        <span>
+                          W {stat.wins} · L {stat.losses} · D {stat.draws}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.drawerEmpty}>No completed games yet.</p>
+                )}
+                {history.length ? (
+                  <ul className={styles.pinList}>
+                    {history.slice(0, 8).map((game) => (
+                      <li key={game.id}>
+                        <button
+                          type="button"
+                          className={styles.pinRow}
+                          onClick={() => {
+                            useGameStore.getState().setOpenGame(game.id);
+                            onClose();
+                          }}
+                        >
+                          <Gamepad2 size={12} />
+                          <span>
+                            <strong>
+                              {game.type === 'drawguess' ? 'Draw & Guess' : 'Tic-Tac-Toe'}
+                            </strong>
+                            <span>
+                              {game.status === 'completed'
+                                ? game.result === 'draw'
+                                  ? 'Draw'
+                                  : game.winnerId === chat?.otherUser?.id
+                                    ? `${game.winner?.displayName || 'Opponent'} won`
+                                    : 'You won'
+                                : game.status}
+                            </span>
+                          </span>
+                          <time>{formatChatTimestamp(game.createdAt)}</time>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
             </div>
           </motion.aside>
         </>
@@ -355,6 +424,10 @@ export function ChatThread({ chatId }) {
   const typing = useChatStore((state) => state.typing[chatId]);
   const presence = usePresenceStore((state) => state.byId);
   const callStatus = useCallStore((state) => state.status);
+  const activeGame = useGameStore((state) => state.activeByChat[chatId]);
+  const openGameId = useGameStore((state) => state.openGameId);
+  const history = useGameStore((state) => state.historyByChat[chatId]) ?? EMPTY_ITEMS;
+  const gameStats = useGameStore((state) => state.statsByChat[chatId]) ?? EMPTY_ITEMS;
 
   const [replyTo, setReplyTo] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -369,6 +442,7 @@ export function ChatThread({ chatId }) {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [pinsHidden, setPinsHidden] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
+  const [dismissedGameId, setDismissedGameId] = useState(null);
 
   const scrollRef = useRef(null);
   const refs = useRef(new Map());
@@ -411,6 +485,8 @@ export function ChatThread({ chatId }) {
     setPendingJump(null);
     setPinsHidden(false);
     setAtBottom(true);
+    setDismissedGameId(null);
+    useGameStore.getState().setOpenGame(null);
 
     useChatStore
       .getState()
@@ -418,6 +494,10 @@ export function ChatThread({ chatId }) {
       .catch((error) => {
         if (active) toast.error(getErrorMessage(error, 'This conversation could not be opened.'));
       });
+    useGameStore
+      .getState()
+      .fetchActive(chatId)
+      .catch(() => {});
 
     return () => {
       active = false;
@@ -587,14 +667,24 @@ export function ChatThread({ chatId }) {
   const openDetails = async () => {
     const next = !detailsOpen;
     setDetailsOpen(next);
-    if (!next || members.length) return;
-    try {
-      const data = unwrap(await api.get(`/chats/${chatId}`));
-      if (data?.members) setMembers(data.members);
-      if (data?.chat) useChatStore.getState().upsertChat(data.chat);
-    } catch {
-      // The summary already gives us enough to show the drawer.
+    if (!next) return;
+    if (!members.length) {
+      try {
+        const data = unwrap(await api.get(`/chats/${chatId}`));
+        if (data?.members) setMembers(data.members);
+        if (data?.chat) useChatStore.getState().upsertChat(data.chat);
+      } catch {
+        // The summary already gives us enough to show the drawer.
+      }
     }
+    useGameStore
+      .getState()
+      .fetchHistory(chatId)
+      .catch(() => {});
+    useGameStore
+      .getState()
+      .fetchStats(chatId)
+      .catch(() => {});
   };
 
   /* Message actions -------------------------------------------------------- */
@@ -643,6 +733,35 @@ export function ChatThread({ chatId }) {
 
   const latestPin = pins[0] ?? null;
   const showPins = Boolean(latestPin) && !pinsHidden;
+  const panelGame = useMemo(() => {
+    if (openGameId) {
+      const fromActive = activeGame?.id === openGameId ? activeGame : null;
+      const fromHistory = history.find((g) => g.id === openGameId) ?? null;
+      const found = fromActive || fromHistory;
+      if (found?.chatId === chatId) return found;
+    }
+    if (activeGame && dismissedGameId !== activeGame.id) return activeGame;
+    return null;
+  }, [openGameId, activeGame, history, chatId, dismissedGameId]);
+
+  useEffect(() => {
+    if (!openGameId) return;
+    const inStore =
+      (activeGame?.id === openGameId && activeGame.chatId === chatId) ||
+      history.some((g) => g.id === openGameId);
+    if (inStore) return;
+    let cancelled = false;
+    api
+      .get(`/games/${openGameId}`)
+      .then(unwrap)
+      .then((game) => {
+        if (!cancelled && game?.chatId === chatId) useGameStore.getState().upsertGame(game);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [openGameId, activeGame, history, chatId]);
 
   return (
     <section className={styles.thread} aria-label={`Conversation with ${title}`}>
@@ -910,6 +1029,16 @@ export function ChatThread({ chatId }) {
           ) : null}
         </AnimatePresence>
 
+        {panelGame ? (
+          <GamePanel
+            game={panelGame}
+            onClose={() => {
+              if (openGameId) useGameStore.getState().setOpenGame(null);
+              else setDismissedGameId(panelGame.id);
+            }}
+          />
+        ) : null}
+
         <Composer
           chatId={chatId}
           chat={chat}
@@ -934,6 +1063,8 @@ export function ChatThread({ chatId }) {
         pins={pins}
         items={items}
         onJump={jumpTo}
+        history={history}
+        gameStats={gameStats}
       />
 
       <Modal

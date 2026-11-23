@@ -1013,3 +1013,131 @@
     border-radius: 24px;
   }
 }
+
+/* Game cards ------------------------------------------------------------- */
+.bubbleGame {
+  min-width: min(320px, 72vw);
+  padding: 10px;
+}
+
+.gameCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gameTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gameIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex: none;
+}
+
+.gameCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gameCopy strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.gameCopy span {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.bubbleOwn .gameCopy span {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.gameStatus {
+  font-size: 10px;
+  font-weight: 650;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  border: 1px solid var(--border);
+}
+
+.bubbleOwn .gameStatus {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.gameStatus_active {
+  color: var(--accent);
+}
+.gameStatus_completed {
+  color: var(--success);
+}
+.gameStatus_invited {
+  color: var(--warning);
+}
+
+.gameActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gameBtn,
+.gameBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.gameBtn:hover:not(:disabled),
+.gameBtnPrimary:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.gameBtnPrimary {
+  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  border-color: transparent;
+}
+
+.bubbleOwn .gameBtn {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.bubbleOwn .gameBtnPrimary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+}
+
+.gameBtn:disabled,
+.gameBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -4,7 +4,9 @@ import {
   ArrowUp,
   Bold,
   Code,
+  Dices,
   Film,
+  Gamepad2,
   ImagePlus,
   Italic,
   Mic,
@@ -21,6 +23,7 @@ import {
 import toast from 'react-hot-toast';
 import { Spinner } from '../ui/Primitives';
 import { useChatStore } from '../../stores/chatStore';
+import { useGameStore } from '../../stores/gameStore';
 import { api, unwrap } from '../../lib/api';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { MAX_FILE_MB, MAX_MESSAGE_LENGTH } from '../../lib/constants';
@@ -95,6 +98,7 @@ export function Composer({
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [activityBusy, setActivityBusy] = useState(null);
 
   const inputRef = useRef(null);
   const imageRef = useRef(null);
@@ -272,6 +276,24 @@ export function Composer({
       toast.error(getErrorMessage(error, 'That GIF could not be sent.'));
     } finally {
       setSending(false);
+    }
+  };
+
+  const sendGameInvite = async (type) => {
+    if (disabled || editing || sending || uploading || activityBusy) return;
+    setMoreOpen(false);
+    setPicker(null);
+    setActivityBusy(type);
+    try {
+      await useGameStore.getState().invite({ chatId, type });
+      toast.success(
+        type === 'drawguess' ? 'Draw & Guess invite sent!' : 'Tic-Tac-Toe invite sent!',
+      );
+      onSent?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Could not send game invite.'));
+    } finally {
+      setActivityBusy(null);
     }
   };
 
@@ -629,6 +651,53 @@ export function Composer({
                         ))}
                       </div>
                     ) : null}
+                  </div>
+
+                  <div className={styles.menuDivider} />
+
+                  <div className={styles.menuSection}>
+                    <span className={styles.menuLabel}>Activities</span>
+                    <div className={styles.quickRow}>
+                      <button
+                        type="button"
+                        className={styles.quickButton}
+                        aria-label="Invite to Tic-Tac-Toe"
+                        disabled={
+                          editing ||
+                          sending ||
+                          uploading ||
+                          voiceBusy ||
+                          disabled ||
+                          Boolean(activityBusy)
+                        }
+                        onClick={() => sendGameInvite('tictactoe')}
+                      >
+                        {activityBusy === 'tictactoe' ? (
+                          <Spinner size={14} />
+                        ) : (
+                          <Gamepad2 size={15} />
+                        )}{' '}
+                        Tic-Tac-Toe
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.quickButton}
+                        aria-label="Invite to Draw & Guess"
+                        disabled={
+                          editing ||
+                          sending ||
+                          uploading ||
+                          voiceBusy ||
+                          disabled ||
+                          Boolean(activityBusy)
+                        }
+                        onClick={() => sendGameInvite('drawguess')}
+                      >
+                        {activityBusy === 'drawguess' ? <Spinner size={14} /> : <Dices size={15} />}{' '}
+                        Draw & Guess
+                      </button>
+                    </div>
+                    <p className={styles.menuHint}>More games coming soon: Chess, Connect 4.</p>
                   </div>
 
                   <div className={styles.menuDivider} />

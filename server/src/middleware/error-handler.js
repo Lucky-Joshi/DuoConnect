@@ -35,6 +35,14 @@ export function errorHandler(error, req, res, next) {
     status = 400;
     code = 'INVALID_JSON';
     message = 'Request body contains invalid JSON.';
+  } else if (error.name === 'ZodError') {
+    status = 422;
+    code = 'VALIDATION_ERROR';
+    message = 'Some fields need your attention.';
+    details = error.issues?.map((issue) => ({
+      path: issue.path?.join('.') || 'body',
+      message: issue.message,
+    }));
   } else if (error.code === '23505') {
     status = 409;
     code = 'CONFLICT';

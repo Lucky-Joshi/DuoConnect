@@ -12,6 +12,7 @@ import { useFriendsStore } from '../../stores/friendsStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { usePresenceStore } from '../../stores/presenceStore';
 import { useCallStore } from '../../stores/callStore';
+import { useGameStore } from '../../stores/gameStore';
 import { useUiStore } from '../../stores/uiStore';
 import styles from './AppLayout.module.css';
 
@@ -46,6 +47,7 @@ export default function AppLayout() {
       useNotificationStore.getState().reset();
       usePresenceStore.getState().reset();
       useCallStore.getState().reset();
+      useGameStore.getState().reset();
     }
   }, [status]);
 

@@ -23,6 +23,7 @@ import linkRoutes from './modules/links/links.routes.js';
 import uploadRoutes from './modules/uploads/uploads.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import callRoutes from './modules/calls/calls.routes.js';
+import gameRoutes from './modules/games/games.routes.js';
 import { getIO } from './realtime/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -129,6 +130,7 @@ export function createApp() {
   app.use('/api/uploads', uploadRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/calls', callRoutes);
+  app.use('/api/games', gameRoutes);
 
   app.use('/api', notFoundHandler);
 

@@ -54,6 +54,21 @@ describe('message previews', () => {
     expect(messagePreview({ type: 'text', body: 'Hello there' })).toBe('Hello there');
   });
 
+  it('describes game messages', () => {
+    expect(messagePreview({ type: 'game', metadata: { gameType: 'tictactoe' } })).toBe(
+      'Tic-Tac-Toe game',
+    );
+    expect(messagePreview({ type: 'game', metadata: { gameType: 'drawguess' } })).toBe(
+      'Draw & Guess game',
+    );
+    expect(
+      messagePreview({
+        type: 'game',
+        metadata: { gameType: 'drawguess', summary: 'Draw & Guess: You won' },
+      }),
+    ).toBe('Draw & Guess: You won');
+  });
+
   it('describes stickers without exposing their raw ids', () => {
     expect(messagePreview({ type: 'sticker', body: 'heart' })).toBe('Sticker: Heart');
     expect(messagePreview({ type: 'sticker', body: 'not-a-sticker' })).toBe('Sticker');

@@ -14,6 +14,7 @@ import {
 } from './presence.js';
 import registerChatHandlers from './handlers/chat.handler.js';
 import registerCallHandlers from './handlers/call.handler.js';
+import registerGameHandlers from './handlers/game.handler.js';
 import { registerHandler } from './handlers/shared.js';
 
 const HEARTBEAT_MS = 30_000;
@@ -32,6 +33,7 @@ async function bootstrap(socket) {
 
   const chat = registerChatHandlers(socket);
   registerCallHandlers(socket);
+  const game = registerGameHandlers(socket);
 
   registerHandler(socket, 'presence:set', async (payload) => {
     const status = payload?.status;
@@ -61,6 +63,7 @@ async function bootstrap(socket) {
     cleaned = true;
     clearInterval(heartbeat);
     chat.cleanup();
+    game.cleanup?.();
     try {
       const lastConnection = await removeConnection(userId, socket.id);
       if (lastConnection) await handleUserDisconnect(userId);

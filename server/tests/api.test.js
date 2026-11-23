@@ -712,6 +712,171 @@ test('push subscription management and active-call lookup', async () => {
   assert.equal(removedAgain.body.data.success, false);
 });
 
+test('in-chat games: invites, moves, draw & guess, history, stats, and guards', async () => {
+  const a = await register('ga');
+  const b = await register('gb');
+
+  await client
+    .post('/api/friends/requests')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ userId: b.user.id });
+  const incoming = await client
+    .get('/api/friends/requests')
+    .set('Authorization', `Bearer ${b.token}`);
+  const pending = incoming.body.data.incoming.find((entry) => entry.user.id === a.user.id);
+  const accepted = await client
+    .post(`/api/friends/requests/${pending.id}/accept`)
+    .set('Authorization', `Bearer ${b.token}`);
+  const chatId = accepted.body.data.chatId;
+  assert.ok(chatId);
+
+  // Normal message endpoint must not create game messages.
+  const badGameMsg = await client
+    .post(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ body: 'game', type: 'game' });
+  assert.equal(badGameMsg.status, 422, JSON.stringify(badGameMsg.body));
+
+  // Tic-Tac-Toe invite
+  const invite = await client
+    .post('/api/games/invites')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ chatId, type: 'tictactoe' });
+  assert.equal(invite.status, 201, JSON.stringify(invite.body));
+  assert.equal(invite.body.data.type, 'tictactoe');
+  assert.equal(invite.body.data.status, 'invited');
+  assert.ok(invite.body.data.inviteMessageId);
+  const gameId = invite.body.data.id;
+
+  // Invite message exists and is typed as game
+  const historyAfterInvite = await client
+    .get(`/api/chats/${chatId}/messages`)
+    .set('Authorization', `Bearer ${a.token}`);
+  const gameMsg = historyAfterInvite.body.data.items.find(
+    (m) => m.id === invite.body.data.inviteMessageId,
+  );
+  assert.ok(gameMsg);
+  assert.equal(gameMsg.type, 'game');
+  assert.equal(gameMsg.metadata.gameId, gameId);
+
+  // Game message cannot be forwarded
+  const forwardGame = await client
+    .post(`/api/messages/${gameMsg.id}/forward`)
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ chatId });
+  assert.equal(forwardGame.status, 400);
+
+  // Only invitee can accept
+  const wrongAccept = await client
+    .post(`/api/games/${gameId}/accept`)
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(wrongAccept.status, 403);
+
+  const acceptedGame = await client
+    .post(`/api/games/${gameId}/accept`)
+    .set('Authorization', `Bearer ${b.token}`);
+  assert.equal(acceptedGame.status, 200);
+  assert.equal(acceptedGame.body.data.status, 'active');
+
+  // Active game endpoint
+  const active = await client
+    .get(`/api/games/chat/${chatId}/active`)
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(active.status, 200);
+  assert.equal(active.body.data.id, gameId);
+
+  // Play moves until win/draw by driving from state
+  let state = acceptedGame.body.data.state;
+  let turnUserId = state.turnUserId;
+  let board = [...state.board];
+  let current = acceptedGame.body.data;
+  const tokenById = { [a.user.id]: a.token, [b.user.id]: b.token };
+  for (let step = 0; step < 9 && current.status === 'active'; step += 1) {
+    const idx = board.findIndex((c) => !c);
+    const moverToken = tokenById[turnUserId];
+    const moveRes = await client
+      .post(`/api/games/${gameId}/move`)
+      .set('Authorization', `Bearer ${moverToken}`)
+      .send({ index: idx });
+    assert.equal(moveRes.status, 200, JSON.stringify(moveRes.body));
+    current = moveRes.body.data;
+    board = [...current.state.board];
+    turnUserId = current.state.turnUserId;
+  }
+  assert.equal(current.status, 'completed');
+  assert.ok(['win', 'draw'].includes(current.result));
+
+  // History/stats
+  const historyRes = await client
+    .get(`/api/games/chat/${chatId}/history`)
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(historyRes.status, 200);
+  assert.ok(historyRes.body.data.some((g) => g.id === gameId));
+  const statsRes = await client
+    .get(`/api/games/chat/${chatId}/stats`)
+    .set('Authorization', `Bearer ${a.token}`);
+  assert.equal(statsRes.status, 200);
+  assert.ok(statsRes.body.data.some((s) => s.type === 'tictactoe'));
+
+  // Draw & Guess: invite, accept, guess, advance
+  const dgInvite = await client
+    .post('/api/games/invites')
+    .set('Authorization', `Bearer ${a.token}`)
+    .send({ chatId, type: 'drawguess', rounds: 1, category: 'animals', difficulty: 'easy' });
+  assert.equal(dgInvite.status, 201, JSON.stringify(dgInvite.body));
+  const dgId = dgInvite.body.data.id;
+
+  const dgAccepted = await client
+    .post(`/api/games/${dgId}/accept`)
+    .set('Authorization', `Bearer ${b.token}`);
+  assert.equal(dgAccepted.status, 200);
+  assert.equal(dgAccepted.body.data.status, 'active');
+  assert.equal(dgAccepted.body.data.type, 'drawguess');
+
+  // Drawer sees word, guesser does not
+  const drawerId = dgAccepted.body.data.state.drawerId;
+  const guesserId = dgAccepted.body.data.state.guesserId;
+  const drawerToken = tokenById[drawerId];
+  const guesserToken = tokenById[guesserId];
+  const drawerView = await client
+    .get(`/api/games/${dgId}`)
+    .set('Authorization', `Bearer ${drawerToken}`);
+  const guesserView = await client
+    .get(`/api/games/${dgId}`)
+    .set('Authorization', `Bearer ${guesserToken}`);
+  assert.ok(drawerView.body.data.state.word);
+  assert.equal(guesserView.body.data.state.word, undefined);
+  assert.ok(guesserView.body.data.state.wordHint);
+
+  // Wrong guess
+  const wrongGuess = await client
+    .post(`/api/games/${dgId}/guess`)
+    .set('Authorization', `Bearer ${guesserToken}`)
+    .send({ guess: 'zzzz-not-a-word' });
+  assert.equal(wrongGuess.status, 200);
+  assert.equal(wrongGuess.body.data.status, 'active');
+
+  // Correct guess
+  const correctWord = drawerView.body.data.state.word;
+  const correctGuess = await client
+    .post(`/api/games/${dgId}/guess`)
+    .set('Authorization', `Bearer ${guesserToken}`)
+    .send({ guess: correctWord });
+  assert.equal(correctGuess.status, 200, JSON.stringify(correctGuess.body));
+  assert.equal(correctGuess.body.data.state.phase, 'round_end');
+
+  // Advance after reveal delay by forcing time
+  await query(
+    `UPDATE game_sessions SET state = jsonb_set(state, '{roundEndsAt}', to_jsonb(to_char(now() - interval '1 second', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))) WHERE id = $1`,
+    [dgId],
+  );
+  const advanced = await client
+    .post(`/api/games/${dgId}/advance-round`)
+    .set('Authorization', `Bearer ${guesserToken}`);
+  assert.equal(advanced.status, 200, JSON.stringify(advanced.body));
+  assert.equal(advanced.body.data.status, 'completed');
+});
+
 test('blocking, unblocking, removing friends, and account deletion', async () => {
   const a = await register('w');
   const b = await register('x');

@@ -832,3 +832,30 @@
     padding: 6px 12px;
   }
 }
+
+.gameStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gameStatCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+
+.gameStatCard strong {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.gameStatCard span {
+  font-size: 11px;
+  color: var(--text-muted);
+}

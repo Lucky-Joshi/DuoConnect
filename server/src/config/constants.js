@@ -5,7 +5,9 @@ export const TYPING_TTL_MS = 4_000;
 export const ONLINE_STATUSES = new Set(['online', 'away']);
 
 export const CHAT_KINDS = ['direct', 'group'];
-export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'gif', 'system'];
+export const MESSAGE_TYPES = ['text', 'image', 'file', 'voice', 'sticker', 'gif', 'game', 'system'];
+export const GAME_TYPES = ['tictactoe', 'drawguess'];
+export const GAME_STATUSES = ['invited', 'active', 'completed', 'declined', 'cancelled', 'expired'];
 export const GIF_IDS = new Set([
   'wave',
   'heart',
@@ -62,6 +64,7 @@ export const NOTIFICATION_TYPES = [
   'message',
   'missed_call',
   'call_ended',
+  'game_invite',
   'system',
 ];
 

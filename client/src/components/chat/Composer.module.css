@@ -507,6 +507,13 @@
   padding: 2px 4px 3px;
 }
 
+.menuHint {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  line-height: 1.35;
+}
+
 .menuLabel {
   font-size: 9.5px;
   font-weight: 650;

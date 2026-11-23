@@ -196,7 +196,7 @@ Send body:
 }
 ```
 
-Types: `text | image | file | voice | sticker | gif`. Attachments must first be uploaded and are claimed atomically by the message. Stickers and GIFs use a curated id as `body` and accept no attachments. Markdown formatting is rendered for text bodies. `clientId` is echoed back so optimistic UI can reconcile.
+Types: `text | image | file | voice | sticker | gif`. Attachments must first be uploaded and are claimed atomically by the message. Stickers and GIFs use a curated id as `body` and accept no attachments. Markdown formatting is rendered for text bodies. `clientId` is echoed back so optimistic UI can reconcile. `game` messages are server-created by game invite/result flows and cannot be sent through normal message endpoints.
 
 ## Messages
 
@@ -275,6 +275,26 @@ Limits: 10 MB default (`MAX_UPLOAD_MB`), 5 MB avatars, 10 attachments per messag
 
 Calls begin and end over Socket.IO; these endpoints are read-only history.
 
+## Games
+
+Direct-chat games are authoritative on the server. Game invites/results are represented as `messages.type = 'game'` with game metadata; normal message send endpoints reject `type: 'game'`.
+
+| Method | Path                               | Auth | Description                                                       |
+| ------ | ---------------------------------- | ---- | ----------------------------------------------------------------- |
+| POST   | `/api/games/invites`               | Yes  | Create invite `{ chatId, type, rounds?, category?, difficulty? }` |
+| GET    | `/api/games/chat/:chatId/active`   | Yes  | Active/invited game for chat, or `null`                           |
+| GET    | `/api/games/chat/:chatId/history`  | Yes  | Recent games for chat                                             |
+| GET    | `/api/games/chat/:chatId/stats`    | Yes  | Win/loss/draw stats by game type                                  |
+| GET    | `/api/games/:gameId`               | Yes  | Game state (viewer-specific for hidden Draw word)                 |
+| POST   | `/api/games/:gameId/accept`        | Yes  | Accept invite                                                     |
+| POST   | `/api/games/:gameId/decline`       | Yes  | Decline invite                                                    |
+| POST   | `/api/games/:gameId/move`          | Yes  | Tic-Tac-Toe move `{ index }`                                      |
+| POST   | `/api/games/:gameId/stroke`        | Yes  | Draw & Guess stroke `{ stroke }`                                  |
+| POST   | `/api/games/:gameId/draw-action`   | Yes  | Draw action `{ action, payload? }` (`clear/undo/redo/fill`)       |
+| POST   | `/api/games/:gameId/guess`         | Yes  | Draw & Guess guess `{ guess }`                                    |
+| POST   | `/api/games/:gameId/advance-round` | Yes  | Advance timed-out/revealed round                                  |
+| POST   | `/api/games/:gameId/play-again`    | Yes  | Create a new invite for same chat/type                            |
+
 ## Realtime API
 
 Connect with the access token:
@@ -299,27 +319,38 @@ socket.emit('message:send', payload, (reply) => {
 
 ### Client → server
 
-| Event               | Payload                                                      | Result                               |
-| ------------------- | ------------------------------------------------------------ | ------------------------------------ |
-| `message:send`      | `{ chatId, body, type, replyToId, attachmentIds, clientId }` | Hydrated message                     |
-| `message:read`      | `{ chatId, messageId?, uptoSeq? }`                           | Advanced read cursor                 |
-| `message:delivered` | none                                                         | Marks undelivered messages delivered |
-| `typing:start`      | `{ chatId }`                                                 | Broadcast typing state               |
-| `typing:stop`       | `{ chatId }`                                                 | Clears typing state                  |
-| `call:start`        | `{ chatId, kind }`                                           | Created call                         |
-| `call:accept`       | `{ callId }`                                                 | Accepted call                        |
-| `call:reject`       | `{ callId }`                                                 | Declined call                        |
-| `call:cancel`       | `{ callId }`                                                 | Cancelled call                       |
-| `call:end`          | `{ callId, reason }`                                         | Ended call                           |
-| `call:fail`         | `{ callId, reason }`                                         | Failed call                          |
-| `call:signal`       | `{ callId, type, data }`                                     | Relayed to the peer                  |
-| `presence:set`      | `{ status }`                                                 | Updates presence                     |
+| Event                | Payload                                                      | Result                               |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------ |
+| `message:send`       | `{ chatId, body, type, replyToId, attachmentIds, clientId }` | Hydrated message                     |
+| `message:read`       | `{ chatId, messageId?, uptoSeq? }`                           | Advanced read cursor                 |
+| `message:delivered`  | none                                                         | Marks undelivered messages delivered |
+| `typing:start`       | `{ chatId }`                                                 | Broadcast typing state               |
+| `typing:stop`        | `{ chatId }`                                                 | Clears typing state                  |
+| `call:start`         | `{ chatId, kind }`                                           | Created call                         |
+| `call:accept`        | `{ callId }`                                                 | Accepted call                        |
+| `call:reject`        | `{ callId }`                                                 | Declined call                        |
+| `call:cancel`        | `{ callId }`                                                 | Cancelled call                       |
+| `call:end`           | `{ callId, reason }`                                         | Ended call                           |
+| `call:fail`          | `{ callId, reason }`                                         | Failed call                          |
+| `call:signal`        | `{ callId, type, data }`                                     | Relayed to the peer                  |
+| `presence:set`       | `{ status }`                                                 | Updates presence                     |
+| `game:invite`        | `{ chatId, type, rounds?, category?, difficulty? }`          | Created game invite                  |
+| `game:accept`        | `{ gameId }`                                                 | Accepted game                        |
+| `game:decline`       | `{ gameId }`                                                 | Declined game                        |
+| `game:move`          | `{ gameId, index }`                                          | Tic-Tac-Toe move                     |
+| `game:stroke`        | `{ gameId, stroke }`                                         | Draw & Guess stroke                  |
+| `game:draw-action`   | `{ gameId, action, payload? }`                               | Draw action                          |
+| `game:guess`         | `{ gameId, guess }`                                          | Draw & Guess guess                   |
+| `game:advance-round` | `{ gameId }`                                                 | Round advance                        |
+| `game:play-again`    | `{ gameId }`                                                 | New invite                           |
+| `game:get`           | `{ gameId }`                                                 | Game state                           |
+| `game:active`        | `{ chatId }`                                                 | Active game for chat                 |
 
 `call:signal.type` is one of `offer`, `answer`, `ice`, `renegotiate`, `media`, `quality`. Media never touches the server; only SDP/ICE/state is relayed.
 
 ### Server → client
 
-`session:ready`, `session:error`, `presence:snapshot`, `presence:update`, `typing:update`, `message:new`, `message:updated`, `message:reaction`, `message:deleted`, `message:delivered`, `message:read`, `chat:read`, `message:pinned`, `notification:new`, `notification:read`, `notification:removed`, `friend:accepted`, `friend:removed`, `contact:blocked`, `contact:unblocked`, `call:incoming`, `call:accepted`, `call:signal`, `call:declined`, `call:cancelled`, `call:missed`, `call:ended`.
+`session:ready`, `session:error`, `presence:snapshot`, `presence:update`, `typing:update`, `message:new`, `message:updated`, `message:reaction`, `message:deleted`, `message:delivered`, `message:read`, `chat:read`, `message:pinned`, `notification:new`, `notification:read`, `notification:removed`, `friend:accepted`, `friend:removed`, `contact:blocked`, `contact:unblocked`, `call:incoming`, `call:accepted`, `call:signal`, `call:declined`, `call:cancelled`, `call:missed`, `call:ended`, `game:updated`.
 
 ## Quick examples
 

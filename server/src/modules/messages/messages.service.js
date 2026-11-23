@@ -19,6 +19,10 @@ function previewFor(message) {
   if (message.type === 'file') return message.attachments[0]?.name || 'Attachment';
   if (message.type === 'sticker') return 'Sticker';
   if (message.type === 'gif') return 'GIF';
+  if (message.type === 'game') {
+    const label = message.metadata?.gameType === 'drawguess' ? 'Draw & Guess' : 'Tic-Tac-Toe';
+    return message.metadata?.summary || `${label} game`;
+  }
   return (message.body || '').slice(0, 140);
 }
 
@@ -73,7 +77,14 @@ async function hydrateOne(messageId) {
   return message;
 }
 
+export async function getMessageById(messageId) {
+  return hydrateOne(messageId);
+}
+
 function resolveType(requestedType, attachments) {
+  if (requestedType === 'game') {
+    throw badRequest('Game messages are created by game actions.');
+  }
   const hasImage = attachments.some((item) => IMAGE_MIME.test(item.mime_type));
   const hasAudio = attachments.some((item) => AUDIO_MIME.test(item.mime_type));
 
@@ -377,6 +388,7 @@ export async function forwardMessage(userId, messageId, targetChatId) {
   if (!source) throw notFound('Message not found.');
   await assertMember(source.chatId, userId);
   if (source.deletedAt) throw badRequest('Deleted messages cannot be forwarded.');
+  if (source.type === 'game') throw badRequest('Game messages cannot be forwarded.');
   await assertMember(targetChatId, userId, { write: true });
 
   const messageIdNew = await withTransaction(async (tx) => {
